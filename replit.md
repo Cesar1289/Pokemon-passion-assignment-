@@ -1,6 +1,6 @@
-# [Project name]
+# PokeVault Intelligence
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+Pokémon TCG collector app for catalog browsing, simulated value research, trade comparison, and private binder management.
 
 ## Run & Operate
 
@@ -22,15 +22,21 @@ _Replace the heading above with the project's name, and this line with one sente
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `artifacts/pokevault-intelligence/` — React web frontend, responsive pages, and brand styling.
+- `artifacts/api-server/src/routes/` — Express account, catalog, dashboard, and binder endpoints.
+- `lib/db/src/schema/` — PostgreSQL tables and relationships.
+- `lib/api-spec/openapi.yaml` — API contract; regenerate client and validation schemas after changes.
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- All prices and price histories are simulated, not live market quotes.
+- The supplied specification explicitly requested local scrypt password authentication. Sessions use random opaque cookies with hashed tokens persisted in PostgreSQL.
+- Private binder entries, favorites, and notes must always be scoped to the authenticated owner.
+- Card artwork uses PokémonTCG.io URLs. When the source lacks an exact print, show an explicit unavailable-artwork illustration rather than a different card.
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+Five domain views: overview, searchable/filterable card index, card detail, multi-card trade comparison, and private binder. Accounts support registration/login/logout; collectors can save favorites and notes, manage binder entries, and export CSV.
 
 ## User preferences
 

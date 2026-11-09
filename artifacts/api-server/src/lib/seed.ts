@@ -11,6 +11,7 @@ type SeedCard = {
   type: string;
   year: number;
   artist: string;
+  imageUrl?: string;
   marketPrice: number;
   trendPercent: number;
   authenticationTip: string;
@@ -36,6 +37,7 @@ const seedCards: SeedCard[] = [
   {
     id: "basep-1",
     name: "Pikachu Illustrator",
+    imageUrl: "/artwork-unavailable.svg",
     setName: "Japanese Promo",
     setId: "basep",
     number: "1",
@@ -97,7 +99,7 @@ const seedCards: SeedCard[] = [
     id: "exd-107",
     name: "Rayquaza Gold Star",
     setName: "EX Deoxys",
-    setId: "exd",
+    setId: "ex8",
     number: "107",
     rarity: "Gold Star",
     type: "Dragon",
@@ -218,7 +220,7 @@ const seedCards: SeedCard[] = [
     name: "Rayquaza V (Alternate Art)",
     setName: "Evolving Skies",
     setId: "swsh7",
-    number: "204",
+    number: "194",
     rarity: "Ultra Rare",
     type: "Dragon",
     year: 2021,
@@ -434,7 +436,7 @@ export async function seedCatalog(): Promise<void> {
   await db.insert(cardsTable).values(
     missingCards.map((card) => ({
       ...card,
-      imageUrl: `https://images.pokemontcg.io/${card.setId}/${card.number.replace(/^0+/, "")}_hires.png`,
+      imageUrl: card.imageUrl ?? `https://images.pokemontcg.io/${card.setId}/${card.number.replace(/^0+/, "")}_hires.png`,
     })),
   );
 
