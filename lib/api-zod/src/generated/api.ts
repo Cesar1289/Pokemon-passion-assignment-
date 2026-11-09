@@ -319,6 +319,29 @@ export const CreateBinderEntryResponse = zod.object({
 
 
 /**
+ * @summary Get personal binder sharing settings
+ */
+export const GetBinderSettingsResponse = zod.object({
+  "isPublic": zod.boolean(),
+  "hideValue": zod.boolean()
+})
+
+
+/**
+ * @summary Update personal binder sharing settings
+ */
+export const UpdateBinderSettingsBody = zod.object({
+  "isPublic": zod.boolean(),
+  "hideValue": zod.boolean()
+})
+
+export const UpdateBinderSettingsResponse = zod.object({
+  "isPublic": zod.boolean(),
+  "hideValue": zod.boolean()
+})
+
+
+/**
  * @summary Update an owned binder entry
  */
 export const UpdateBinderEntryParams = zod.object({
@@ -371,5 +394,59 @@ export const DeleteBinderEntryParams = zod.object({
 })
 
 export const DeleteBinderEntryResponse = zod.void()
+
+
+/**
+ * @summary Browse public binders
+ */
+export const ListPublicBindersResponseItem = zod.object({
+  "userId": zod.number().int(),
+  "username": zod.string(),
+  "cardCount": zod.number().int(),
+  "uniqueCardCount": zod.number().int(),
+  "hideValue": zod.boolean()
+})
+export const ListPublicBindersResponse = zod.array(ListPublicBindersResponseItem)
+
+
+/**
+ * @summary View a public binder without edit access
+ */
+export const GetCommunityBinderParams = zod.object({
+  "userId": zod.coerce.number().int()
+})
+
+export const GetCommunityBinderResponse = zod.object({
+  "profile": zod.object({
+  "userId": zod.number().int(),
+  "username": zod.string(),
+  "cardCount": zod.number().int(),
+  "uniqueCardCount": zod.number().int(),
+  "hideValue": zod.boolean()
+}),
+  "entries": zod.array(zod.object({
+  "cardId": zod.string(),
+  "condition": zod.enum(['Mint', 'Near Mint', 'Lightly Played', 'Moderately Played', 'Heavily Played', 'Damaged']),
+  "quantity": zod.number().int(),
+  "card": zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "setName": zod.string(),
+  "setId": zod.string(),
+  "number": zod.string(),
+  "rarity": zod.string(),
+  "type": zod.string(),
+  "year": zod.number().int(),
+  "artist": zod.string(),
+  "imageUrl": zod.string(),
+  "marketPrice": zod.number(),
+  "trendPercent": zod.number(),
+  "authenticationTip": zod.string(),
+  "tags": zod.array(zod.string()),
+  "isFavorite": zod.boolean()
+})
+})),
+  "portfolioValue": zod.number().nullable()
+})
 
 

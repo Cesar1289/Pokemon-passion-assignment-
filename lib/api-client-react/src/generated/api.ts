@@ -23,15 +23,19 @@ import type {
   BinderEntry,
   BinderEntryInput,
   BinderEntryUpdate,
+  BinderSharingSettings,
+  BinderSharingSettingsInput,
   Card,
   CardDetail,
   CardNote,
   CardNoteInput,
+  CommunityBinder,
   Dashboard,
   Error,
   HealthStatus,
   ListCardsParams,
   LoginInput,
+  PublicBinderSummary,
   RegisterInput,
   Session
 } from './api.schemas';
@@ -1193,6 +1197,171 @@ export const useCreateBinderEntry = <TError = ErrorType<Error>,
       return useMutation(getCreateBinderEntryMutationOptions(options));
     }
 
+export const getGetBinderSettingsUrl = () => {
+
+
+
+
+  return `/api/binder/settings`
+}
+
+/**
+ * @summary Get personal binder sharing settings
+ */
+export const getBinderSettings = async ( options?: Parameters<typeof customFetch>[1]): Promise<BinderSharingSettings> => {
+
+  return customFetch<BinderSharingSettings>(getGetBinderSettingsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetBinderSettingsQueryKey = () => {
+    return [
+    `/api/binder/settings`
+    ] as const;
+    }
+
+
+export const getGetBinderSettingsQueryOptions = <TData = Awaited<ReturnType<typeof getBinderSettings>>, TError = ErrorType<Error>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBinderSettings>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetBinderSettingsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getBinderSettings>>> = ({ signal }) => getBinderSettings({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getBinderSettings>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetBinderSettingsQueryResult = NonNullable<Awaited<ReturnType<typeof getBinderSettings>>>
+export type GetBinderSettingsQueryError = ErrorType<Error>
+
+
+/**
+ * @summary Get personal binder sharing settings
+ */
+
+export function useGetBinderSettings<TData = Awaited<ReturnType<typeof getBinderSettings>>, TError = ErrorType<Error>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getBinderSettings>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetBinderSettingsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpdateBinderSettingsUrl = () => {
+
+
+
+
+  return `/api/binder/settings`
+}
+
+/**
+ * @summary Update personal binder sharing settings
+ */
+export const updateBinderSettings = async (binderSharingSettingsInput: BinderSharingSettingsInput, options?: Parameters<typeof customFetch>[1]): Promise<BinderSharingSettings> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<BinderSharingSettings>(getUpdateBinderSettingsUrl(),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(binderSharingSettingsInput)
+  }
+);}
+
+
+
+
+
+export const getUpdateBinderSettingsMutationKey = () => ['updateBinderSettings'] as const;
+
+export const getUpdateBinderSettingsMutationOptions = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateBinderSettings>>, TError,UpdateBinderSettingsMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateBinderSettings>>, TError,UpdateBinderSettingsMutationVariables, TContext> => {
+
+const mutationKey = getUpdateBinderSettingsMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateBinderSettings>>, UpdateBinderSettingsMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateBinderSettings(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateBinderSettingsMutationResult = NonNullable<Awaited<ReturnType<typeof updateBinderSettings>>>
+    export type UpdateBinderSettingsMutationBody = BodyType<BinderSharingSettingsInput>
+    export type UpdateBinderSettingsMutationError = ErrorType<Error>
+    export type UpdateBinderSettingsMutationVariables = {data: BodyType<BinderSharingSettingsInput>}
+
+    /**
+ * @summary Update personal binder sharing settings
+ */
+export const useUpdateBinderSettings = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateBinderSettings>>, TError,UpdateBinderSettingsMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateBinderSettings>>,
+        TError,
+        UpdateBinderSettingsMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUpdateBinderSettingsMutationOptions(options));
+    }
+
 export const getUpdateBinderEntryUrl = (entryId: number,) => {
 
 
@@ -1355,4 +1524,158 @@ export const useDeleteBinderEntry = <TError = ErrorType<Error>,
       > => {
       return useMutation(getDeleteBinderEntryMutationOptions(options));
     }
+
+export const getListPublicBindersUrl = () => {
+
+
+
+
+  return `/api/community`
+}
+
+/**
+ * @summary Browse public binders
+ */
+export const listPublicBinders = async ( options?: Parameters<typeof customFetch>[1]): Promise<PublicBinderSummary[]> => {
+
+  return customFetch<PublicBinderSummary[]>(getListPublicBindersUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListPublicBindersQueryKey = () => {
+    return [
+    `/api/community`
+    ] as const;
+    }
+
+
+export const getListPublicBindersQueryOptions = <TData = Awaited<ReturnType<typeof listPublicBinders>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listPublicBinders>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListPublicBindersQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listPublicBinders>>> = ({ signal }) => listPublicBinders({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listPublicBinders>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListPublicBindersQueryResult = NonNullable<Awaited<ReturnType<typeof listPublicBinders>>>
+export type ListPublicBindersQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Browse public binders
+ */
+
+export function useListPublicBinders<TData = Awaited<ReturnType<typeof listPublicBinders>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listPublicBinders>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListPublicBindersQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetCommunityBinderUrl = (userId: number,) => {
+
+
+
+
+  return `/api/community/${userId}`
+}
+
+/**
+ * @summary View a public binder without edit access
+ */
+export const getCommunityBinder = async (userId: number, options?: Parameters<typeof customFetch>[1]): Promise<CommunityBinder> => {
+
+  return customFetch<CommunityBinder>(getGetCommunityBinderUrl(userId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetCommunityBinderQueryKey = (userId: number,) => {
+    return [
+    `/api/community/${userId}`
+    ] as const;
+    }
+
+
+export const getGetCommunityBinderQueryOptions = <TData = Awaited<ReturnType<typeof getCommunityBinder>>, TError = ErrorType<Error>>(userId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCommunityBinder>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetCommunityBinderQueryKey(userId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getCommunityBinder>>> = ({ signal }) => getCommunityBinder(userId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: userId !== null && userId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getCommunityBinder>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetCommunityBinderQueryResult = NonNullable<Awaited<ReturnType<typeof getCommunityBinder>>>
+export type GetCommunityBinderQueryError = ErrorType<Error>
+
+
+/**
+ * @summary View a public binder without edit access
+ */
+
+export function useGetCommunityBinder<TData = Awaited<ReturnType<typeof getCommunityBinder>>, TError = ErrorType<Error>>(
+ userId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCommunityBinder>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetCommunityBinderQueryOptions(userId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 

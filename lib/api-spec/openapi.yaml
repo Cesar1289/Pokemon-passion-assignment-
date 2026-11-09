@@ -18,6 +18,8 @@ tags:
     description: Personal collection management
   - name: dashboard
     description: Collector dashboard summaries
+  - name: community
+    description: Opt-in public binder sharing
 paths:
   /healthz:
     get:
@@ -323,6 +325,53 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+  /binder/settings:
+    get:
+      operationId: getBinderSettings
+      tags: [binder]
+      summary: Get personal binder sharing settings
+      responses:
+        "200":
+          description: Current sharing preferences
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BinderSharingSettings"
+        "401":
+          description: Sign-in required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    patch:
+      operationId: updateBinderSettings
+      tags: [binder]
+      summary: Update personal binder sharing settings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BinderSharingSettingsInput"
+      responses:
+        "200":
+          description: Updated sharing preferences
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BinderSharingSettings"
+        "400":
+          description: Invalid sharing preferences
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Sign-in required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
   /binder/{entryId}:
     patch:
       operationId: updateBinderEntry
@@ -378,6 +427,43 @@ paths:
                 $ref: "#/components/schemas/Error"
         "401":
           description: Sign-in required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /community:
+    get:
+      operationId: listPublicBinders
+      tags: [community]
+      summary: Browse public binders
+      responses:
+        "200":
+          description: Public binder directory
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PublicBinderSummary"
+  /community/{userId}:
+    get:
+      operationId: getCommunityBinder
+      tags: [community]
+      summary: View a public binder without edit access
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Public, view-only binder showcase
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommunityBinder"
+        "404":
+          description: Binder is not public or does not exist
           content:
             application/json:
               schema:
@@ -498,6 +584,46 @@ components:
         binderCount: { type: integer }
         binderValue: { type: number }
       required: [movers, dailyFact, binderCount, binderValue]
+    BinderSharingSettings:
+      type: object
+      properties:
+        isPublic: { type: boolean }
+        hideValue: { type: boolean }
+      required: [isPublic, hideValue]
+    BinderSharingSettingsInput:
+      type: object
+      properties:
+        isPublic: { type: boolean }
+        hideValue: { type: boolean }
+      required: [isPublic, hideValue]
+    PublicBinderSummary:
+      type: object
+      properties:
+        userId: { type: integer }
+        username: { type: string }
+        cardCount: { type: integer }
+        uniqueCardCount: { type: integer }
+        hideValue: { type: boolean }
+      required: [userId, username, cardCount, uniqueCardCount, hideValue]
+    CommunityBinderEntry:
+      type: object
+      properties:
+        cardId: { type: string }
+        condition:
+          type: string
+          enum: [Mint, Near Mint, Lightly Played, Moderately Played, Heavily Played, Damaged]
+        quantity: { type: integer }
+        card: { $ref: "#/components/schemas/Card" }
+      required: [cardId, condition, quantity, card]
+    CommunityBinder:
+      type: object
+      properties:
+        profile: { $ref: "#/components/schemas/PublicBinderSummary" }
+        entries:
+          type: array
+          items: { $ref: "#/components/schemas/CommunityBinderEntry" }
+        portfolioValue: { type: ["number", "null"] }
+      required: [profile, entries, portfolioValue]
     BinderEntry:
       type: object
       properties:

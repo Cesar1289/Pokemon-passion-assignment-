@@ -3,18 +3,20 @@ import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/reac
 import { Link, Route, Switch, useLocation, useRoute } from 'wouter';
 import {
   Activity, ArrowDownRight, ArrowLeft, ArrowRight, ArrowUpRight, BadgeCheck, BookOpen,
-  Bookmark, Check, ChevronDown, CircleHelp, Clock3, Command, Compass, Download, Gem, Heart,
+  Bookmark, Check, ChevronDown, CircleHelp, Clock3, Command, Compass, Download, Eye, EyeOff, Gem, Heart,
   Layers3, LogIn, LogOut, Menu, Minus, Moon, Plus, Search, ShieldCheck, SlidersHorizontal,
-  Sparkles, Sun, Swords, X,
+  Sparkles, Sun, Swords, Users, X,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
-  BinderEntry, BinderEntryInputCondition, Card, getGetCardNoteQueryKey,
-  getGetCardQueryKey, getGetDashboardQueryKey, getGetSessionQueryKey, getHealthCheckQueryKey, getListBinderEntriesQueryKey,
+  BinderEntry, BinderEntryInputCondition, Card, CommunityBinder, PublicBinderSummary, getGetBinderSettingsQueryKey,
+  getGetCardNoteQueryKey, getGetCardQueryKey, getGetCommunityBinderQueryKey, getGetDashboardQueryKey, getGetSessionQueryKey, getHealthCheckQueryKey, getListBinderEntriesQueryKey,
+  getListPublicBindersQueryKey,
   getListCardsQueryKey, ListCardsParams, useAddFavorite, useCreateBinderEntry,
-  useDeleteBinderEntry, useGetCard, useGetCardNote, useGetDashboard, useGetSession,
-  useListBinderEntries, useListCards, useLogin, useLogout, useRegister,
+  useDeleteBinderEntry, useGetBinderSettings, useGetCard, useGetCardNote, useGetCommunityBinder, useGetDashboard, useGetSession,
+  useListBinderEntries, useListCards, useListPublicBinders, useLogin, useLogout, useRegister,
   useRemoveFavorite, useSaveCardNote, useUpdateBinderEntry, useHealthCheck,
+  useUpdateBinderSettings,
 } from '@workspace/api-client-react';
 import NotFound from '@/pages/not-found';
 import { ErrorBoundary } from '@/components/error-boundary';
@@ -55,13 +57,14 @@ function AppFrame({ children, user }: { children: ReactNode; user: { username: s
     { href: '/cards', text: 'Card index', icon: Layers3 },
     { href: '/compare', text: 'Trade lab', icon: Swords },
     { href: '/binder', text: 'My binder', icon: BookOpen },
+    { href: '/community', text: 'Community', icon: Users },
   ];
   return <div className="app-shell app-grain">
     <aside className={`sidebar ${menuOpen ? 'sidebar-open' : ''}`}>
       <Link href="/" className="brand-lockup" onClick={() => setMenuOpen(false)}><Mark /><span><strong>POKEVAULT</strong><small>INTELLIGENCE</small></span></Link>
       <div className="side-kicker">COLLECTOR DESK</div>
       <nav className="side-nav" aria-label="Primary navigation">
-        {links.map(({ href, text, icon: Icon }) => <Link key={href} href={href} data-testid={`link-nav-${text.toLowerCase().replaceAll(' ', '-')}`} className={`side-link ${location === href || (href === '/cards' && location.startsWith('/cards/')) ? 'side-link-active' : ''}`} onClick={() => setMenuOpen(false)}><Icon size={17} strokeWidth={1.8} /><span>{text}</span>{href === '/compare' && <span className="nav-new">LIVE</span>}</Link>)}
+        {links.map(({ href, text, icon: Icon }) => <Link key={href} href={href} data-testid={`link-nav-${text.toLowerCase().replaceAll(' ', '-')}`} className={`side-link ${location === href || (href === '/cards' && location.startsWith('/cards/')) || (href === '/community' && location.startsWith('/community/')) ? 'side-link-active' : ''}`} onClick={() => setMenuOpen(false)}><Icon size={17} strokeWidth={1.8} /><span>{text}</span>{href === '/compare' && <span className="nav-new">LIVE</span>}</Link>)}
       </nav>
       <div className="sidebar-spacer" />
       <div className="field-note"><div className="field-note-icon"><ShieldCheck size={18} /></div><div><strong>Collector’s field guide</strong><p>Know what you hold. Trade with clarity.</p></div></div>
@@ -296,6 +299,7 @@ function Modal({ title, children, onClose }: { title: string; children: ReactNod
 
 function BinderPage({ user }: { user: { username: string } | null }) {
   const query = useListBinderEntries({ query: { enabled: !!user, queryKey: getListBinderEntriesQueryKey() }, request: cookieRequest });
+  const settingsQuery = useGetBinderSettings({ query: { enabled: !!user, queryKey: getGetBinderSettingsQueryKey() }, request: cookieRequest });
   const entries = query.data ?? [];
   const [editing, setEditing] = useState<BinderEntry | null>(null);
   const [editCondition, setEditCondition] = useState('');
@@ -303,20 +307,84 @@ function BinderPage({ user }: { user: { username: string } | null }) {
   const [editNotes, setEditNotes] = useState('');
   const [removing, setRemoving] = useState<BinderEntry | null>(null);
   const cache = useQueryClient();
+  const sharing = useUpdateBinderSettings({ request: cookieRequest, mutation: { onSuccess: (settings) => {
+    cache.setQueryData(getGetBinderSettingsQueryKey(), settings);
+    cache.invalidateQueries({ queryKey: getListPublicBindersQueryKey() });
+    cache.invalidateQueries({ predicate: (query) => typeof query.queryKey[0] === 'string' && (query.queryKey[0] === '/api/community' || query.queryKey[0].startsWith('/api/community/')) });
+    cache.invalidateQueries({ queryKey: getGetDashboardQueryKey() });
+    toast.success(settings.isPublic ? 'Your binder is now visible in the community.' : 'Your binder is private again.');
+  }, onError: (error) => toast.error(failureMessage(error)) } });
   const update = useUpdateBinderEntry({ request: cookieRequest, mutation: { onSuccess: () => { cache.invalidateQueries({ queryKey: getListBinderEntriesQueryKey() }); cache.invalidateQueries({ queryKey: getGetDashboardQueryKey() }); setEditing(null); toast.success('Binder entry updated.'); } } });
   const remove = useDeleteBinderEntry({ request: cookieRequest, mutation: { onSuccess: () => { cache.invalidateQueries({ queryKey: getListBinderEntriesQueryKey() }); cache.invalidateQueries({ queryKey: getGetDashboardQueryKey() }); setRemoving(null); toast.success('Card removed from your binder.'); } } });
   if (!user) return <div className="binder-gate"><div className="gate-mark"><BookOpen size={25} /></div><span className="section-kicker">YOUR PRIVATE COLLECTION</span><h1>A place for<br /><em>the keepers.</em></h1><p>Sign in to catalog your cards, track your collection’s simulated value, and keep the details close.</p><Link href="/login" className="button button-warm">Sign in to your vault <ArrowRight size={16} /></Link><span className="gate-foot">Your binder is private to your account.</span></div>;
   if (query.isLoading) return <div className="page-loading"><div className="skeleton skeleton-line" /><div className="skeleton skeleton-line short" /><SkeletonGrid /></div>;
   if (query.isError) return <QueryError error={query.error} retry={() => query.refetch()} />;
   const total = entries.reduce((sum, entry) => sum + entry.totalValue, 0);
+  const settings = settingsQuery.data ?? { isPublic: false, hideValue: false };
+  const updateSharing = (patch: Partial<typeof settings>) => sharing.mutate({ data: { isPublic: patch.isPublic ?? settings.isPublic, hideValue: patch.hideValue ?? settings.hideValue } });
   const editEntry = (entry: BinderEntry) => { setEditing(entry); setEditCondition(entry.condition); setEditQuantity(entry.quantity); setEditNotes(entry.notes); };
   return <div className="binder-page">
     <div className="page-title-row"><div><div className="eyebrow"><span className="eyebrow-line" />YOUR COLLECTION / PRIVATE</div><h1>The binder<span className="title-period">.</span></h1><p>Every copy, carefully accounted for.</p></div><div className="binder-actions"><button className="button button-outline" onClick={() => exportBinderCsv(entries)} disabled={!entries.length}><Download size={15} /> Export CSV</button><Link href="/cards" className="button button-warm"><Plus size={16} /> Add cards</Link></div></div>
     <div className="binder-summary"><div><span className="stat-label">TOTAL COPIES</span><strong>{entries.reduce((sum, entry) => sum + entry.quantity, 0)}</strong><small>{entries.length} unique {entries.length === 1 ? 'card' : 'cards'}</small></div><div><span className="stat-label">SIMULATED VALUE</span><strong>{money(total)}</strong><small>Based on current market trace</small></div><div className="binder-summary-note"><Layers3 size={21} /><p>Condition matters. Keep each copy’s details current for a clearer picture.</p></div></div>
+    <section className="sharing-panel" aria-labelledby="sharing-title">
+      <div className="sharing-intro"><div className="sharing-emblem">{settings.isPublic ? <Eye size={20} /> : <ShieldCheck size={20} />}</div><div><span className="section-kicker">YOUR PRIVACY, YOUR CALL</span><h2 id="sharing-title">Share with care.</h2><p>{settings.isPublic ? 'Your binder appears in Community Binders. Your private notes never leave your vault.' : 'Your binder is private by default. Choose what other collectors can see.'}</p></div></div>
+      <div className="sharing-controls">
+        <label className="sharing-option"><span className="sharing-option-icon">{settings.isPublic ? <Eye size={16} /> : <ShieldCheck size={16} />}</span><span className="sharing-option-copy"><strong>Public binder</strong><small>Show your card list in Community Binders. Notes are never shared.</small></span><input type="checkbox" role="switch" aria-label="Make binder public" data-testid="switch-binder-public" checked={settings.isPublic} disabled={sharing.isPending || settingsQuery.isLoading} onChange={(event) => updateSharing({ isPublic: event.target.checked })} /><i className="switch-track" /></label>
+        <label className={`sharing-option ${!settings.isPublic ? 'sharing-option-muted' : ''}`}><span className="sharing-option-icon">{settings.hideValue ? <EyeOff size={16} /> : <Eye size={16} />}</span><span className="sharing-option-copy"><strong>Hide collection value</strong><small>{settings.hideValue ? 'Visitors see your cards and counts, but not an aggregate value.' : 'Visitors can see the aggregate simulated value.'}</small></span><input type="checkbox" role="switch" aria-label="Hide aggregate collection value" data-testid="switch-binder-hide-value" checked={settings.hideValue} disabled={sharing.isPending || settingsQuery.isLoading || !settings.isPublic} onChange={(event) => updateSharing({ hideValue: event.target.checked })} /><i className="switch-track" /></label>
+      </div>
+      <div className="sharing-foot"><span className={`privacy-status ${settings.isPublic ? 'privacy-status-public' : ''}`}><i />{settings.isPublic ? 'VISIBLE TO THE COMMUNITY' : 'PRIVATE TO YOUR ACCOUNT'}</span>{settingsQuery.isError && <span className="inline-error">Sharing settings unavailable. <button className="text-action" onClick={() => settingsQuery.refetch()}>Retry</button></span>}{sharing.isPending && <span className="sharing-saving">Saving your preferences…</span>}</div>
+    </section>
     {!entries.length ? <div className="empty-state binder-empty"><div className="empty-icon"><BookOpen /></div><span className="section-kicker">FIRST PAGE, BLANK</span><h3>Your collection starts with one.</h3><p>Find a card you love and add it here. We’ll keep its value and condition in view.</p><Link href="/cards" className="button button-solid">Browse the card index <ArrowRight size={15} /></Link></div> :
       <div className="binder-list"><div className="binder-list-heading"><span>CARD / SET</span><span>CONDITION</span><span>QTY.</span><span>EST. VALUE</span><span>TOOLS</span></div>{entries.map((entry) => <article className="binder-row" key={entry.id} data-testid={`binder-entry-${entry.id}`}><Link href={`/cards/${encodeURIComponent(entry.cardId)}`} className="binder-card"><img src={entry.card.imageUrl} alt="" /><span><strong>{entry.card.name}</strong><small>{entry.card.setName} · {entry.card.number}</small></span></Link><span className="condition-pill">{entry.condition}</span><span className="binder-qty">{entry.quantity}</span><strong className="binder-value">{money(entry.totalValue)}</strong><div className="row-actions"><button className="icon-button" onClick={() => editEntry(entry)} aria-label={`Edit ${entry.card.name}`} data-testid={`button-edit-entry-${entry.id}`}><SlidersHorizontal size={15} /></button><button className="icon-button danger-icon" onClick={() => setRemoving(entry)} aria-label={`Remove ${entry.card.name}`} data-testid={`button-remove-entry-${entry.id}`}><X size={16} /></button></div>{entry.notes && <p className="binder-note"><Bookmark size={12} /> {entry.notes}</p>}</article>)}</div>}
     {editing && <Modal title={`Edit ${editing.card.name}`} onClose={() => setEditing(null)}><form className="modal-form" onSubmit={(e) => { e.preventDefault(); update.mutate({ entryId: editing.id, data: { condition: editCondition as BinderEntryInputCondition, quantity: Math.max(1, editQuantity), notes: editNotes } }); }}><label>Condition<select value={editCondition} onChange={(e) => setEditCondition(e.target.value)}>{conditions.map((value) => <option key={value}>{value}</option>)}</select></label><label>Quantity<input type="number" min="1" value={editQuantity} onChange={(e) => setEditQuantity(Number(e.target.value))} /></label><label>Notes<textarea maxLength={1000} value={editNotes} onChange={(e) => setEditNotes(e.target.value)} /></label>{update.isError && <p className="inline-error">{failureMessage(update.error)}</p>}<Button type="submit" disabled={update.isPending}>{update.isPending ? 'Updating…' : 'Save changes'}</Button></form></Modal>}
     {removing && <Modal title="Remove this copy?" onClose={() => setRemoving(null)}><p className="confirm-copy">This will remove <strong>{removing.card.name}</strong> from your binder. This action can’t be undone.</p>{remove.isError && <p className="inline-error">{failureMessage(remove.error)}</p>}<div className="modal-actions"><Button variant="outline" onClick={() => setRemoving(null)}>Keep card</Button><Button variant="danger" onClick={() => remove.mutate({ entryId: removing.id })} disabled={remove.isPending}>{remove.isPending ? 'Removing…' : 'Remove copy'}</Button></div></Modal>}
+  </div>;
+}
+
+function CommunityPage() {
+  const [search, setSearch] = useState('');
+  const directory = useListPublicBinders({ query: { queryKey: getListPublicBindersQueryKey() }, request: cookieRequest });
+  const binders = (directory.data ?? []).filter((binder) => binder.username.toLowerCase().includes(search.trim().toLowerCase()));
+  return <div className="community-page">
+    <section className="community-hero">
+      <div className="community-hero-copy"><span className="eyebrow"><span className="eyebrow-line" />THE COLLECTOR COMMONS</span><h1>Good collections<br /><em>find each other.</em></h1><p>A considered look at the binders collectors choose to share. Every collection here is public by choice.</p><div className="community-hero-meta"><span><Users size={14} /> OPEN TO EVERY COLLECTOR</span><span><ShieldCheck size={14} /> NOTES STAY PRIVATE</span></div></div>
+      <div className="community-orbit" aria-hidden="true"><div className="community-orbit-ring ring-a" /><div className="community-orbit-ring ring-b" /><div className="community-orbit-core"><BookOpen size={26} /><span>SHARED<br />ARCHIVE</span></div><i className="orbit-token token-one" /><i className="orbit-token token-two" /><span className="orbit-caption">COLLECT / CONNECT</span></div>
+    </section>
+    <section className="community-browse"><div className="community-heading"><div><span className="section-kicker">PUBLIC BINDERS</span><h2>From their shelves.</h2><p>Browse by collector. Open a binder to see the cards, never the private notes.</p></div><label className="community-search"><Search size={16} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Find a collector…" aria-label="Search public binders" data-testid="input-community-search" />{search && <button onClick={() => setSearch('')} aria-label="Clear search"><X size={14} /></button>}</label></div>
+      {directory.isLoading ? <div className="community-directory">{[0,1,2].map((item) => <div className="community-skeleton" key={item}><div className="skeleton skeleton-line" /><div className="skeleton skeleton-line short" /><div className="skeleton community-skeleton-art" /></div>)}</div> : directory.isError ? <QueryError error={directory.error} retry={() => directory.refetch()} /> : !binders.length ? <div className="community-empty"><div className="empty-icon"><Users /></div><span className="section-kicker">{search ? 'NO MATCHES YET' : 'A QUIET COMMONS'}</span><h3>{search ? 'No collector by that name.' : 'The shelves are waiting.'}</h3><p>{search ? 'Try another username or clear your search.' : 'When collectors choose to share a public binder, you’ll find it here.'}</p>{search && <button className="text-action" onClick={() => setSearch('')}>Clear search <ArrowRight size={14} /></button>}</div> : <div className="community-directory">{binders.map((binder, index) => <CommunitySummaryCard key={binder.userId} binder={binder} index={index} />)}</div>}
+      <div className="community-boundary"><ShieldCheck size={17} /><span><strong>A clear boundary.</strong> Only binders their owners have made public appear here. Card notes and personal details are never included.</span><Link href="/binder">Set your sharing preferences <ArrowRight size={14} /></Link></div>
+    </section>
+  </div>;
+}
+
+function CommunitySummaryCard({ binder, index }: { binder: PublicBinderSummary; index: number }) {
+  return <Link href={`/community/${binder.userId}`} className="community-person-card" data-testid={`link-community-binder-${binder.userId}`}>
+    <div className={`community-card-art community-art-${index % 3}`}><span className="community-card-index">COLLECTOR / {String(index + 1).padStart(2, '0')}</span><BookOpen size={31} strokeWidth={1.15} /><span className="community-card-seal"><Eye size={13} /> PUBLIC</span></div>
+    <div className="community-person-info"><div className="community-avatar">{binder.username.slice(0,1).toUpperCase()}</div><div className="community-person-name"><strong>{binder.username}</strong><small>COLLECTOR’S BINDER</small></div><ArrowUpRight size={17} className="community-card-arrow" /></div>
+    <div className="community-stats"><div><strong>{binder.cardCount}</strong><small>CARDS</small></div><div><strong>{binder.uniqueCardCount}</strong><small>UNIQUE</small></div><div><strong>{binder.hideValue ? 'Private' : 'Shared'}</strong><small>VALUE</small></div></div>
+  </Link>;
+}
+
+function CommunityBinderPage() {
+  const [, params] = useRoute('/community/:userId');
+  const rawUserId = params?.userId ?? '';
+  const userId = /^\d+$/.test(rawUserId) ? Number(rawUserId) : -1;
+  const query = useGetCommunityBinder(userId, { query: { enabled: userId > 0, queryKey: getGetCommunityBinderQueryKey(userId) }, request: cookieRequest });
+  if (userId < 1) return <div className="community-empty community-invalid"><div className="empty-icon"><CircleHelp /></div><h3>That collector isn’t in the archive.</h3><Link href="/community" className="text-action">Return to the commons <ArrowRight size={14} /></Link></div>;
+  if (query.isLoading) return <div className="community-detail-loading"><div className="skeleton skeleton-line" /><div className="skeleton skeleton-line short" /><SkeletonGrid /></div>;
+  if (query.isError || !query.data) return <div className="community-error"><QueryError error={query.error} retry={() => query.refetch()} /><Link href="/community" className="text-action"><ArrowLeft size={14} /> Back to Community Binders</Link></div>;
+  return <CommunityBinderView binder={query.data} />;
+}
+
+function CommunityBinderView({ binder }: { binder: CommunityBinder }) {
+  const profile = binder.profile;
+  return <div className="community-public-binder">
+    <Link href="/community" className="back-link"><ArrowLeft size={15} /> Community Binders</Link>
+    <section className="public-binder-banner"><div className="public-binder-avatar">{profile.username.slice(0,1).toUpperCase()}</div><div className="public-binder-identity"><span className="section-kicker"><Eye size={12} /> PUBLIC COLLECTION</span><h1>{profile.username}<span className="title-period">.</span></h1><p>A collector’s shelf, shared by choice.</p></div><div className="public-binder-value"><span className="stat-label">{profile.hideValue ? 'VALUE HIDDEN BY COLLECTOR' : 'SIMULATED PORTFOLIO VALUE'}</span><strong>{profile.hideValue || binder.portfolioValue === null ? 'Not shared' : money(binder.portfolioValue)}</strong><small>{profile.cardCount} copies · {profile.uniqueCardCount} unique cards</small></div></section>
+    <div className="public-binder-note"><ShieldCheck size={16} /><span>This is a read-only view. Private notes and owner controls are never shown.</span></div>
+    <section className="public-card-section"><div className="public-card-heading"><div><span className="section-kicker">THE COLLECTION</span><h2>Cards on this shelf.</h2></div><span>{binder.entries.length} {binder.entries.length === 1 ? 'ENTRY' : 'ENTRIES'}</span></div>
+      {binder.entries.length ? <div className="public-card-grid">{binder.entries.map((entry) => <article className="public-card" key={`${entry.cardId}-${entry.condition}`} data-testid={`community-card-${entry.cardId}`}><Link href={`/cards/${encodeURIComponent(entry.cardId)}`} className="public-card-image"><img src={entry.card.imageUrl} alt={`${entry.card.name} trading card`} loading="lazy" /><span>{entry.card.number}</span></Link><div className="public-card-copy"><span className="public-card-set">{entry.card.setName}</span><Link href={`/cards/${encodeURIComponent(entry.cardId)}`} className="public-card-name">{entry.card.name}</Link><div className="public-card-meta"><span>{entry.condition}</span><span>QTY. {entry.quantity}</span></div></div></article>)}</div> : <div className="community-empty"><div className="empty-icon"><BookOpen /></div><h3>This shelf is between chapters.</h3><p>The collector has shared a binder, but there are no cards to display just yet.</p></div>}
+    </section>
   </div>;
 }
 
@@ -396,6 +464,8 @@ function RouteView({ user }: { user: { username: string } | null }) {
     <Route path="/cards/:cardId" component={() => <DetailPage user={user} />} />
     <Route path="/compare" component={() => <ComparePage user={user} />} />
     <Route path="/binder" component={() => <BinderPage user={user} />} />
+    <Route path="/community" component={CommunityPage} />
+    <Route path="/community/:userId" component={CommunityBinderPage} />
     <Route component={NotFound} />
   </Switch></AppFrame>;
 }

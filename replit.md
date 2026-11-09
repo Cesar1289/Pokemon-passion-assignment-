@@ -32,11 +32,12 @@ Pokémon TCG collector app for catalog browsing, simulated value research, trade
 - All prices and price histories are simulated, not live market quotes.
 - The supplied specification explicitly requested local scrypt password authentication. Sessions use random opaque cookies with hashed tokens persisted in PostgreSQL.
 - Private binder entries, favorites, and notes must always be scoped to the authenticated owner.
+- Binder sharing is opt-in and defaults to private; public showcases never include personal notes, and owners can hide the aggregate portfolio value.
 - Card artwork uses PokémonTCG.io URLs. When the source lacks an exact print, show an explicit unavailable-artwork illustration rather than a different card.
 
 ## Product
 
-Five domain views: overview, searchable/filterable card index, card detail, multi-card trade comparison, and private binder. Accounts support registration/login/logout; collectors can save favorites and notes, manage binder entries, and export CSV.
+Six domain views: overview, searchable/filterable card index, card detail, multi-card trade comparison, private binder, and public Community Binders. Accounts support registration/login/logout; collectors can save favorites and notes, manage binder entries, export CSV, and opt in to binder sharing.
 
 ## User preferences
 

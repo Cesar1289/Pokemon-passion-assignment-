@@ -94,6 +94,50 @@ export interface Dashboard {
   binderValue: number;
 }
 
+export interface BinderSharingSettings {
+  isPublic: boolean;
+  hideValue: boolean;
+}
+
+export interface BinderSharingSettingsInput {
+  isPublic: boolean;
+  hideValue: boolean;
+}
+
+export interface PublicBinderSummary {
+  userId: number;
+  username: string;
+  cardCount: number;
+  uniqueCardCount: number;
+  hideValue: boolean;
+}
+
+export type CommunityBinderEntryCondition = typeof CommunityBinderEntryCondition[keyof typeof CommunityBinderEntryCondition];
+
+
+export const CommunityBinderEntryCondition = {
+  Mint: 'Mint',
+  Near_Mint: 'Near Mint',
+  Lightly_Played: 'Lightly Played',
+  Moderately_Played: 'Moderately Played',
+  Heavily_Played: 'Heavily Played',
+  Damaged: 'Damaged',
+} as const;
+
+export interface CommunityBinderEntry {
+  cardId: string;
+  condition: CommunityBinderEntryCondition;
+  quantity: number;
+  card: Card;
+}
+
+export interface CommunityBinder {
+  profile: PublicBinderSummary;
+  entries: CommunityBinderEntry[];
+  /** @nullable */
+  portfolioValue: number | null;
+}
+
 export type BinderEntryCondition = typeof BinderEntryCondition[keyof typeof BinderEntryCondition];
 
 
