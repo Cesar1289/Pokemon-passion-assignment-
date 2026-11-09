@@ -3,13 +3,21 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: PokeVault Intelligence Pokémon TCG collector API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Account and session operations
+  - name: cards
+    description: Catalog and card detail operations
+  - name: binder
+    description: Personal collection management
+  - name: dashboard
+    description: Collector dashboard summaries
 paths:
   /healthz:
     get:
@@ -24,6 +32,356 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /auth/session:
+    get:
+      operationId: getSession
+      tags: [auth]
+      summary: Get the current signed-in user
+      responses:
+        "200":
+          description: Current session, if any
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Session"
+  /auth/register:
+    post:
+      operationId: register
+      tags: [auth]
+      summary: Create an account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterInput"
+      responses:
+        "201":
+          description: Account created and signed in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Session"
+        "400":
+          description: Invalid account details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: Username is already taken
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Sign in to an account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginInput"
+      responses:
+        "200":
+          description: Signed-in session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Session"
+        "400":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Sign out and clear the current session
+      responses:
+        "204":
+          description: Signed out
+  /dashboard:
+    get:
+      operationId: getDashboard
+      tags: [dashboard]
+      summary: Get market movers and collector highlights
+      responses:
+        "200":
+          description: Dashboard data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Dashboard"
+  /cards:
+    get:
+      operationId: listCards
+      tags: [cards]
+      summary: Search, filter, and sort the card catalog
+      parameters:
+        - in: query
+          name: search
+          schema: { type: string }
+        - in: query
+          name: sets
+          description: Repeat parameter for multiple set names
+          schema: { type: array, items: { type: string } }
+          style: form
+          explode: true
+        - in: query
+          name: rarities
+          description: Repeat parameter for multiple rarities
+          schema: { type: array, items: { type: string } }
+          style: form
+          explode: true
+        - in: query
+          name: types
+          description: Repeat parameter for multiple Pokémon types
+          schema: { type: array, items: { type: string } }
+          style: form
+          explode: true
+        - in: query
+          name: sort
+          schema:
+            type: string
+            enum: [name, price_asc, price_desc]
+            default: name
+        - in: query
+          name: favoritesOnly
+          schema: { type: boolean, default: false }
+      responses:
+        "200":
+          description: Matching catalog cards
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Card"
+  /cards/{cardId}:
+    get:
+      operationId: getCard
+      tags: [cards]
+      summary: Get card details and related cards
+      parameters:
+        - in: path
+          name: cardId
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Card detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CardDetail"
+        "404":
+          description: Card not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /cards/{cardId}/favorite:
+    post:
+      operationId: addFavorite
+      tags: [cards]
+      summary: Add a card to the signed-in user's favorites
+      parameters:
+        - in: path
+          name: cardId
+          required: true
+          schema: { type: string }
+      responses:
+        "204":
+          description: Card favorited
+        "401":
+          description: Sign-in required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    delete:
+      operationId: removeFavorite
+      tags: [cards]
+      summary: Remove a card from the signed-in user's favorites
+      parameters:
+        - in: path
+          name: cardId
+          required: true
+          schema: { type: string }
+      responses:
+        "204":
+          description: Favorite removed
+        "401":
+          description: Sign-in required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /cards/{cardId}/note:
+    get:
+      operationId: getCardNote
+      tags: [cards]
+      summary: Get the signed-in user's note for a card
+      parameters:
+        - in: path
+          name: cardId
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Note text, if present
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CardNote"
+        "401":
+          description: Sign-in required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    put:
+      operationId: saveCardNote
+      tags: [cards]
+      summary: Save or update the signed-in user's note for a card
+      parameters:
+        - in: path
+          name: cardId
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CardNoteInput"
+      responses:
+        "200":
+          description: Saved note
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CardNote"
+        "401":
+          description: Sign-in required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /binder:
+    get:
+      operationId: listBinderEntries
+      tags: [binder]
+      summary: List the signed-in user's binder entries
+      responses:
+        "200":
+          description: Personal binder entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BinderEntry"
+        "401":
+          description: Sign-in required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    post:
+      operationId: createBinderEntry
+      tags: [binder]
+      summary: Add a card to the signed-in user's binder
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BinderEntryInput"
+      responses:
+        "201":
+          description: Binder entry created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BinderEntry"
+        "400":
+          description: Invalid entry
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Sign-in required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /binder/{entryId}:
+    patch:
+      operationId: updateBinderEntry
+      tags: [binder]
+      summary: Update an owned binder entry
+      parameters:
+        - in: path
+          name: entryId
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BinderEntryUpdate"
+      responses:
+        "200":
+          description: Updated binder entry
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BinderEntry"
+        "404":
+          description: Entry not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Sign-in required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    delete:
+      operationId: deleteBinderEntry
+      tags: [binder]
+      summary: Delete an owned binder entry
+      parameters:
+        - in: path
+          name: entryId
+          required: true
+          schema: { type: integer }
+      responses:
+        "204":
+          description: Entry removed
+        "404":
+          description: Entry not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Sign-in required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +391,142 @@ components:
           type: string
       required:
         - status
+    Error:
+      type: object
+      properties:
+        error: { type: string }
+      required: [error]
+    User:
+      type: object
+      properties:
+        id: { type: integer }
+        username: { type: string }
+      required: [id, username]
+    Session:
+      type: object
+      properties:
+        user:
+          anyOf:
+            - $ref: "#/components/schemas/User"
+            - type: "null"
+      required: [user]
+    RegisterInput:
+      type: object
+      properties:
+        username: { type: string, minLength: 3, maxLength: 24 }
+        password: { type: string, minLength: 8, maxLength: 128 }
+      required: [username, password]
+    LoginInput:
+      type: object
+      properties:
+        username: { type: string, minLength: 1, maxLength: 24 }
+        password: { type: string, minLength: 1, maxLength: 128 }
+      required: [username, password]
+    PricePoint:
+      type: object
+      properties:
+        day: { type: string }
+        value: { type: number }
+      required: [day, value]
+    Card:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        setName: { type: string }
+        setId: { type: string }
+        number: { type: string }
+        rarity: { type: string }
+        type: { type: string }
+        year: { type: integer }
+        artist: { type: string }
+        imageUrl: { type: string }
+        marketPrice: { type: number }
+        trendPercent: { type: number }
+        authenticationTip: { type: string }
+        tags: { type: array, items: { type: string } }
+        isFavorite: { type: boolean }
+      required:
+        - id
+        - name
+        - setName
+        - setId
+        - number
+        - rarity
+        - type
+        - year
+        - artist
+        - imageUrl
+        - marketPrice
+        - trendPercent
+        - authenticationTip
+        - tags
+        - isFavorite
+    CardDetail:
+      allOf:
+        - $ref: "#/components/schemas/Card"
+        - type: object
+          properties:
+            history:
+              type: array
+              items:
+                $ref: "#/components/schemas/PricePoint"
+            relatedCards:
+              type: array
+              items:
+                $ref: "#/components/schemas/Card"
+          required: [history, relatedCards]
+    CardNote:
+      type: object
+      properties:
+        cardId: { type: string }
+        note: { type: ["string", "null"] }
+      required: [cardId, note]
+    CardNoteInput:
+      type: object
+      properties:
+        note: { type: string, maxLength: 2000 }
+      required: [note]
+    Dashboard:
+      type: object
+      properties:
+        movers:
+          type: array
+          items:
+            $ref: "#/components/schemas/Card"
+        dailyFact: { type: string }
+        binderCount: { type: integer }
+        binderValue: { type: number }
+      required: [movers, dailyFact, binderCount, binderValue]
+    BinderEntry:
+      type: object
+      properties:
+        id: { type: integer }
+        cardId: { type: string }
+        condition:
+          type: string
+          enum: [Mint, Near Mint, Lightly Played, Moderately Played, Heavily Played, Damaged]
+        quantity: { type: integer }
+        notes: { type: string }
+        card: { $ref: "#/components/schemas/Card" }
+        totalValue: { type: number }
+      required: [id, cardId, condition, quantity, notes, card, totalValue]
+    BinderEntryInput:
+      type: object
+      properties:
+        cardId: { type: string, minLength: 1 }
+        condition:
+          type: string
+          enum: [Mint, Near Mint, Lightly Played, Moderately Played, Heavily Played, Damaged]
+        quantity: { type: integer, minimum: 1 }
+        notes: { type: string, maxLength: 1000 }
+      required: [cardId, condition, quantity, notes]
+    BinderEntryUpdate:
+      type: object
+      properties:
+        condition:
+          type: string
+          enum: [Mint, Near Mint, Lightly Played, Moderately Played, Heavily Played, Damaged]
+        quantity: { type: integer, minimum: 1 }
+        notes: { type: string, maxLength: 1000 }
 

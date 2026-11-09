@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "PokeVault Intelligence"
+description = "A Pokémon TCG intelligence app for collectors, traders, and competitive players to explore cards, compare simulated trade values, and manage a persistent personal binder."
+version = "1.0.0"
+id = "artifacts/pokevault-intelligence"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 24851
+
+[services.development]
+run = "pnpm --filter @workspace/pokevault-intelligence run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/pokevault-intelligence", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/pokevault-intelligence/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "24851"
+BASE_PATH = "/"
