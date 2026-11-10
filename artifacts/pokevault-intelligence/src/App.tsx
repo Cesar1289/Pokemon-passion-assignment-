@@ -25,6 +25,7 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: 1, staleTime: 20_000 } } });
 const cookieRequest = { credentials: 'include' as const };
+const THEME_STORAGE_KEY = 'pokevault-theme-v2';
 const conditions = Object.values(BinderEntryInputCondition);
 const ThemeContext = createContext<{ dark: boolean; toggle: () => void }>({ dark: false, toggle: () => undefined });
 const money = (value?: number) => typeof value === 'number' ? value.toLocaleString('en-US', { style: 'currency', currency: 'USD' }) : '—';
@@ -98,10 +99,25 @@ function SkeletonGrid() {
   return <div className="card-grid">{[1, 2, 3, 4].map((n) => <div className="card-skeleton" key={n}><div className="skeleton skeleton-art" /><div className="skeleton skeleton-line" /><div className="skeleton skeleton-line short" /></div>)}</div>;
 }
 
+function CardArtwork({ src, alt, className, loading = 'lazy' }: {
+  src: string; alt: string; className?: string; loading?: 'eager' | 'lazy';
+}) {
+  const [failedSource, setFailedSource] = useState<string | null>(null);
+  const hasArtwork = Boolean(src) && src !== '/artwork-unavailable.svg' && failedSource !== src;
+  const fallbackAlt = alt ? `${alt} — artwork unavailable` : 'Card artwork unavailable';
+  return <img
+    className={className}
+    src={hasArtwork ? src : '/artwork-unavailable.svg'}
+    alt={hasArtwork ? alt : fallbackAlt}
+    loading={loading}
+    onError={() => { if (hasArtwork) setFailedSource(src); }}
+  />;
+}
+
 function CardTile({ card, user, onFavorite }: { card: Card; user: { username: string } | null; onFavorite?: (card: Card) => void }) {
   return <article className="card-tile" data-testid={`card-catalog-${card.id}`}>
     <Link href={`/cards/${encodeURIComponent(card.id)}`} className="tile-image-link" aria-label={`View ${card.name}`}>
-      <div className="tile-art-wrap"><span className="card-serial">{card.number}</span><img className="card-art" src={card.imageUrl} alt={`${card.name} trading card`} loading="lazy" /><span className="tile-rarity">{card.rarity}</span></div>
+      <div className="tile-art-wrap"><span className="card-serial">{card.number}</span><CardArtwork className="card-art" src={card.imageUrl} alt={`${card.name} trading card`} /><span className="tile-rarity">{card.rarity}</span></div>
     </Link>
     <div className="tile-copy">
       <div className="tile-topline"><span>{card.setName}</span><button className={`favorite-button ${card.isFavorite ? 'is-favorite' : ''}`} title={user ? card.isFavorite ? 'Remove favorite' : 'Add favorite' : 'Sign in to save favorites'} aria-label={card.isFavorite ? 'Remove from favorites' : 'Add to favorites'} data-testid={`button-favorite-${card.id}`} onClick={() => onFavorite?.(card)}><Heart size={16} fill={card.isFavorite ? 'currentColor' : 'none'} /></button></div>
@@ -267,7 +283,7 @@ function DetailPage({ user }: { user: { username: string } | null }) {
   return <div className="detail-page">
     <Link href="/cards" className="back-link"><ArrowLeft size={15} /> Back to the index</Link>
     <div className="detail-main">
-      <div className="detail-art-frame"><div className="detail-art-top"><span>POKEVAULT / CARD RECORD</span><span>{card.setId} · {card.number}</span></div><img src={card.imageUrl} alt={`${card.name} Pokémon card`} /><div className="detail-art-caption">COLLECTOR’S REFERENCE <b>{card.year}</b></div></div>
+      <div className="detail-art-frame"><div className="detail-art-top"><span>POKEVAULT / CARD RECORD</span><span>{card.setId} · {card.number}</span></div><CardArtwork src={card.imageUrl} alt={`${card.name} Pokémon card`} loading="eager" /><div className="detail-art-caption">COLLECTOR’S REFERENCE <b>{card.year}</b></div></div>
       <div className="detail-copy">
         <div className="detail-eyebrow"><span>{card.setName}</span><span className="rarity-chip"><Gem size={12} /> {card.rarity}</span></div>
         <h1>{card.name}<span className="title-period">.</span></h1>
@@ -335,7 +351,7 @@ function BinderPage({ user }: { user: { username: string } | null }) {
       <div className="sharing-foot"><span className={`privacy-status ${settings.isPublic ? 'privacy-status-public' : ''}`}><i />{settings.isPublic ? 'VISIBLE TO THE COMMUNITY' : 'PRIVATE TO YOUR ACCOUNT'}</span>{settingsQuery.isError && <span className="inline-error">Sharing settings unavailable. <button className="text-action" onClick={() => settingsQuery.refetch()}>Retry</button></span>}{sharing.isPending && <span className="sharing-saving">Saving your preferences…</span>}</div>
     </section>
     {!entries.length ? <div className="empty-state binder-empty"><div className="empty-icon"><BookOpen /></div><span className="section-kicker">FIRST PAGE, BLANK</span><h3>Your collection starts with one.</h3><p>Find a card you love and add it here. We’ll keep its value and condition in view.</p><Link href="/cards" className="button button-solid">Browse the card index <ArrowRight size={15} /></Link></div> :
-      <div className="binder-list"><div className="binder-list-heading"><span>CARD / SET</span><span>CONDITION</span><span>QTY.</span><span>EST. VALUE</span><span>TOOLS</span></div>{entries.map((entry) => <article className="binder-row" key={entry.id} data-testid={`binder-entry-${entry.id}`}><Link href={`/cards/${encodeURIComponent(entry.cardId)}`} className="binder-card"><img src={entry.card.imageUrl} alt="" /><span><strong>{entry.card.name}</strong><small>{entry.card.setName} · {entry.card.number}</small></span></Link><span className="condition-pill">{entry.condition}</span><span className="binder-qty">{entry.quantity}</span><strong className="binder-value">{money(entry.totalValue)}</strong><div className="row-actions"><button className="icon-button" onClick={() => editEntry(entry)} aria-label={`Edit ${entry.card.name}`} data-testid={`button-edit-entry-${entry.id}`}><SlidersHorizontal size={15} /></button><button className="icon-button danger-icon" onClick={() => setRemoving(entry)} aria-label={`Remove ${entry.card.name}`} data-testid={`button-remove-entry-${entry.id}`}><X size={16} /></button></div>{entry.notes && <p className="binder-note"><Bookmark size={12} /> {entry.notes}</p>}</article>)}</div>}
+      <div className="binder-list"><div className="binder-list-heading"><span>CARD / SET</span><span>CONDITION</span><span>QTY.</span><span>EST. VALUE</span><span>TOOLS</span></div>{entries.map((entry) => <article className="binder-row" key={entry.id} data-testid={`binder-entry-${entry.id}`}><Link href={`/cards/${encodeURIComponent(entry.cardId)}`} className="binder-card"><CardArtwork src={entry.card.imageUrl} alt="" /><span><strong>{entry.card.name}</strong><small>{entry.card.setName} · {entry.card.number}</small></span></Link><span className="condition-pill">{entry.condition}</span><span className="binder-qty">{entry.quantity}</span><strong className="binder-value">{money(entry.totalValue)}</strong><div className="row-actions"><button className="icon-button" onClick={() => editEntry(entry)} aria-label={`Edit ${entry.card.name}`} data-testid={`button-edit-entry-${entry.id}`}><SlidersHorizontal size={15} /></button><button className="icon-button danger-icon" onClick={() => setRemoving(entry)} aria-label={`Remove ${entry.card.name}`} data-testid={`button-remove-entry-${entry.id}`}><X size={16} /></button></div>{entry.notes && <p className="binder-note"><Bookmark size={12} /> {entry.notes}</p>}</article>)}</div>}
     {editing && <Modal title={`Edit ${editing.card.name}`} onClose={() => setEditing(null)}><form className="modal-form" onSubmit={(e) => { e.preventDefault(); update.mutate({ entryId: editing.id, data: { condition: editCondition as BinderEntryInputCondition, quantity: Math.max(1, editQuantity), notes: editNotes } }); }}><label>Condition<select value={editCondition} onChange={(e) => setEditCondition(e.target.value)}>{conditions.map((value) => <option key={value}>{value}</option>)}</select></label><label>Quantity<input type="number" min="1" value={editQuantity} onChange={(e) => setEditQuantity(Number(e.target.value))} /></label><label>Notes<textarea maxLength={1000} value={editNotes} onChange={(e) => setEditNotes(e.target.value)} /></label>{update.isError && <p className="inline-error">{failureMessage(update.error)}</p>}<Button type="submit" disabled={update.isPending}>{update.isPending ? 'Updating…' : 'Save changes'}</Button></form></Modal>}
     {removing && <Modal title="Remove this copy?" onClose={() => setRemoving(null)}><p className="confirm-copy">This will remove <strong>{removing.card.name}</strong> from your binder. This action can’t be undone.</p>{remove.isError && <p className="inline-error">{failureMessage(remove.error)}</p>}<div className="modal-actions"><Button variant="outline" onClick={() => setRemoving(null)}>Keep card</Button><Button variant="danger" onClick={() => remove.mutate({ entryId: removing.id })} disabled={remove.isPending}>{remove.isPending ? 'Removing…' : 'Remove copy'}</Button></div></Modal>}
   </div>;
@@ -383,7 +399,7 @@ function CommunityBinderView({ binder }: { binder: CommunityBinder }) {
     <section className="public-binder-banner"><div className="public-binder-avatar">{profile.username.slice(0,1).toUpperCase()}</div><div className="public-binder-identity"><span className="section-kicker"><Eye size={12} /> PUBLIC COLLECTION</span><h1>{profile.username}<span className="title-period">.</span></h1><p>A collector’s shelf, shared by choice.</p></div><div className="public-binder-value"><span className="stat-label">{profile.hideValue ? 'VALUE HIDDEN BY COLLECTOR' : 'SIMULATED PORTFOLIO VALUE'}</span><strong>{profile.hideValue || binder.portfolioValue === null ? 'Not shared' : money(binder.portfolioValue)}</strong><small>{profile.cardCount} copies · {profile.uniqueCardCount} unique cards</small></div></section>
     <div className="public-binder-note"><ShieldCheck size={16} /><span>This is a read-only view. Private notes and owner controls are never shown.</span></div>
     <section className="public-card-section"><div className="public-card-heading"><div><span className="section-kicker">THE COLLECTION</span><h2>Cards on this shelf.</h2></div><span>{binder.entries.length} {binder.entries.length === 1 ? 'ENTRY' : 'ENTRIES'}</span></div>
-      {binder.entries.length ? <div className="public-card-grid">{binder.entries.map((entry) => <article className="public-card" key={`${entry.cardId}-${entry.condition}`} data-testid={`community-card-${entry.cardId}`}><Link href={`/cards/${encodeURIComponent(entry.cardId)}`} className="public-card-image"><img src={entry.card.imageUrl} alt={`${entry.card.name} trading card`} loading="lazy" /><span>{entry.card.number}</span></Link><div className="public-card-copy"><span className="public-card-set">{entry.card.setName}</span><Link href={`/cards/${encodeURIComponent(entry.cardId)}`} className="public-card-name">{entry.card.name}</Link><div className="public-card-meta"><span>{entry.condition}</span><span>QTY. {entry.quantity}</span></div></div></article>)}</div> : <div className="community-empty"><div className="empty-icon"><BookOpen /></div><h3>This shelf is between chapters.</h3><p>The collector has shared a binder, but there are no cards to display just yet.</p></div>}
+      {binder.entries.length ? <div className="public-card-grid">{binder.entries.map((entry) => <article className="public-card" key={`${entry.cardId}-${entry.condition}`} data-testid={`community-card-${entry.cardId}`}><Link href={`/cards/${encodeURIComponent(entry.cardId)}`} className="public-card-image"><CardArtwork src={entry.card.imageUrl} alt={`${entry.card.name} trading card`} /><span>{entry.card.number}</span></Link><div className="public-card-copy"><span className="public-card-set">{entry.card.setName}</span><Link href={`/cards/${encodeURIComponent(entry.cardId)}`} className="public-card-name">{entry.card.name}</Link><div className="public-card-meta"><span>{entry.condition}</span><span>QTY. {entry.quantity}</span></div></div></article>)}</div> : <div className="community-empty"><div className="empty-icon"><BookOpen /></div><h3>This shelf is between chapters.</h3><p>The collector has shared a binder, but there are no cards to display just yet.</p></div>}
     </section>
   </div>;
 }
@@ -417,8 +433,8 @@ function ComparePage({ user }: { user: { username: string } | null }) {
 function TradeSide({ title, value, cards, search, setSearch, onPick, onRemove, onClear }: { title: string; value: Card[]; cards: Card[]; search: string; setSearch: (text: string) => void; onPick: (card: Card) => void; onRemove: (id: string) => void; onClear: () => void }) {
   const [expanded, setExpanded] = useState(false);
   return <section className="trade-side"><div className="trade-side-head"><span className="section-kicker">{title}</span>{value.length > 0 && <button className="text-action" onClick={onClear}><X size={14} /> Clear</button>}</div>
-    {value.length > 0 && <div className="trade-picked-list">{value.map((card) => <div className="trade-picked" key={card.id}><img src={card.imageUrl} alt="" /><div><strong>{card.name}</strong><small>{card.setName} · {card.number}</small><span className="trade-value">{money(card.marketPrice)}</span></div><button className="icon-button" aria-label={`Remove ${card.name} from trade`} onClick={() => onRemove(card.id)}><X size={15} /></button></div>)}</div>}
-    <button className="trade-picker" onClick={() => setExpanded(!expanded)}><span className="picker-plus"><Plus size={20} /></span><span><strong>{value.length ? 'Add another card' : 'Choose cards'}</strong><small>Search the catalog to add cards to this side</small></span><ChevronDown size={16} className={expanded ? 'rotate-chevron' : ''} /></button>{expanded && <div className="trade-picker-panel"><label className="search-control"><Search size={15} /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Find a card…" aria-label={`Search card for ${title}`} /></label><div className="picker-results">{cards.filter((card) => !value.some((item) => item.id === card.id)).slice(0, 8).map((card) => <button key={card.id} onClick={() => onPick(card)}><img src={card.imageUrl} alt="" /><span><strong>{card.name}</strong><small>{card.setName}</small></span><b>{money(card.marketPrice)}</b></button>)}{!cards.length && <p className="picker-empty">No matching cards. Try a different search.</p>}</div></div>}
+    {value.length > 0 && <div className="trade-picked-list">{value.map((card) => <div className="trade-picked" key={card.id}><CardArtwork src={card.imageUrl} alt="" /><div><strong>{card.name}</strong><small>{card.setName} · {card.number}</small><span className="trade-value">{money(card.marketPrice)}</span></div><button className="icon-button" aria-label={`Remove ${card.name} from trade`} onClick={() => onRemove(card.id)}><X size={15} /></button></div>)}</div>}
+    <button className="trade-picker" onClick={() => setExpanded(!expanded)}><span className="picker-plus"><Plus size={20} /></span><span><strong>{value.length ? 'Add another card' : 'Choose cards'}</strong><small>Search the catalog to add cards to this side</small></span><ChevronDown size={16} className={expanded ? 'rotate-chevron' : ''} /></button>{expanded && <div className="trade-picker-panel"><label className="search-control"><Search size={15} /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Find a card…" aria-label={`Search card for ${title}`} /></label><div className="picker-results">{cards.filter((card) => !value.some((item) => item.id === card.id)).slice(0, 8).map((card) => <button key={card.id} onClick={() => onPick(card)}><CardArtwork src={card.imageUrl} alt="" /><span><strong>{card.name}</strong><small>{card.setName}</small></span><b>{money(card.marketPrice)}</b></button>)}{!cards.length && <p className="picker-empty">No matching cards. Try a different search.</p>}</div></div>}
     <div className="trade-side-footer"><span>SIMULATED MARKET VALUE</span><strong>{money(value.reduce((sum, card) => sum + card.marketPrice, 0))}</strong></div>
   </section>;
 }
@@ -477,10 +493,10 @@ function SessionRouter() {
 }
 
 function App() {
-  const [dark, setDark] = useState(() => window.localStorage.getItem('pokevault-theme') === 'dark');
+  const [dark, setDark] = useState(() => window.localStorage.getItem(THEME_STORAGE_KEY) !== 'light');
   useEffect(() => {
     document.documentElement.classList.toggle('dark', dark);
-    window.localStorage.setItem('pokevault-theme', dark ? 'dark' : 'light');
+    window.localStorage.setItem(THEME_STORAGE_KEY, dark ? 'dark' : 'light');
   }, [dark]);
   const theme = useMemo(() => ({ dark, toggle: () => setDark((current) => !current) }), [dark]);
   return <QueryClientProvider client={queryClient}><TooltipProvider><ThemeContext.Provider value={theme}><ErrorBoundary><SessionRouter /></ErrorBoundary><Toaster /></ThemeContext.Provider></TooltipProvider></QueryClientProvider>;

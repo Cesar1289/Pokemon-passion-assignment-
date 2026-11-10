@@ -1,8 +1,42 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="600" height="825" viewBox="0 0 600 825">
-  <rect width="600" height="825" rx="28" fill="#0A1E3C"/>
-  <rect x="22" y="22" width="556" height="781" rx="18" fill="none" stroke="#FFCB05" stroke-width="3"/>
-  <path d="M220 310h160v160H220zM245 340h110M245 370h80M245 400h100" fill="none" stroke="#FFCB05" stroke-width="6"/>
-  <text x="300" y="525" text-anchor="middle" fill="#FFF8E7" font-family="sans-serif" font-size="28" font-weight="bold">ARTWORK UNAVAILABLE</text>
-  <text x="300" y="567" text-anchor="middle" fill="#FFF8E7" font-family="sans-serif" font-size="20">Catalog record only</text>
-  <text x="300" y="745" text-anchor="middle" fill="#FFCB05" font-family="sans-serif" font-size="18" letter-spacing="4">POKEVAULT INTELLIGENCE</text>
+  <defs>
+    <linearGradient id="vault" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#142E52"/>
+      <stop offset="1" stop-color="#07172F"/>
+    </linearGradient>
+    <linearGradient id="paper" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFF8E7"/>
+      <stop offset="1" stop-color="#F0E5BF"/>
+    </linearGradient>
+    <radialGradient id="glow">
+      <stop offset="0" stop-color="#FFCB05" stop-opacity=".2"/>
+      <stop offset="1" stop-color="#FFCB05" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="grain" width="22" height="22" patternUnits="userSpaceOnUse">
+      <circle cx="3" cy="5" r="1" fill="#FFF8E7" opacity=".13"/>
+      <circle cx="16" cy="14" r=".8" fill="#FFCB05" opacity=".16"/>
+    </pattern>
+  </defs>
+  <rect width="600" height="825" rx="34" fill="url(#vault)"/>
+  <rect x="15" y="15" width="570" height="795" rx="25" fill="none" stroke="#FFCB05" stroke-opacity=".72" stroke-width="2"/>
+  <rect x="28" y="28" width="544" height="769" rx="19" fill="url(#grain)"/>
+  <circle cx="300" cy="378" r="212" fill="url(#glow)"/>
+  <rect x="75" y="75" width="450" height="54" rx="10" fill="#FFF8E7" fill-opacity=".08" stroke="#FFF8E7" stroke-opacity=".16"/>
+  <circle cx="102" cy="102" r="7" fill="#EE1515"/>
+  <text x="126" y="107" fill="#FFF8E7" font-family="sans-serif" font-size="15" font-weight="700" letter-spacing="3">POKEVAULT / CARD ARCHIVE</text>
+  <rect x="177" y="202" width="246" height="310" rx="22" fill="url(#paper)" stroke="#FFCB05" stroke-width="4"/>
+  <rect x="195" y="220" width="210" height="214" rx="12" fill="#0A1E3C"/>
+  <circle cx="300" cy="324" r="77" fill="none" stroke="#FFCB05" stroke-opacity=".22" stroke-width="2"/>
+  <circle cx="300" cy="324" r="55" fill="none" stroke="#FFCB05" stroke-opacity=".4" stroke-width="2"/>
+  <path d="M258 309c13-12 27-17 42-17s29 5 42 17v41c-13-12-27-17-42-17s-29 5-42 17z" fill="none" stroke="#FFCB05" stroke-width="5" stroke-linejoin="round"/>
+  <path d="M300 292v42" stroke="#FFCB05" stroke-width="4"/>
+  <path d="m244 258 5 10 11 2-8 8 2 11-10-5-10 5 2-11-8-8 11-2zM356 366l4 8 9 2-7 6 2 9-8-4-8 4 2-9-7-6 9-2z" fill="#EE1515"/>
+  <path d="M217 464h166" stroke="#0A1E3C" stroke-opacity=".18" stroke-width="2"/>
+  <circle cx="218" cy="482" r="4" fill="#EE1515"/>
+  <circle cx="234" cy="482" r="4" fill="#FFCB05"/>
+  <circle cx="250" cy="482" r="4" fill="#0A1E3C" opacity=".65"/>
+  <text x="300" y="592" text-anchor="middle" fill="#FFF8E7" font-family="sans-serif" font-size="20" font-weight="700" letter-spacing="4">NO ARTWORK ON FILE</text>
+  <path d="M165 613h270" stroke="#FFCB05" stroke-opacity=".48"/>
+  <text x="300" y="650" text-anchor="middle" fill="#D7D4C3" font-family="sans-serif" font-size="18">The card record is still available.</text>
+  <text x="300" y="747" text-anchor="middle" fill="#FFCB05" font-family="sans-serif" font-size="14" letter-spacing="5">COLLECT WITH CLARITY</text>
 </svg>

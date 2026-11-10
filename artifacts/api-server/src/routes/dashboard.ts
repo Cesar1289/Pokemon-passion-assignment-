@@ -12,13 +12,16 @@ import { currentUser } from "../lib/auth";
 const router: IRouter = Router();
 
 const dailyFacts = [
-  "The Pokémon TCG launched in Japan in 1996, before arriving in North America in 1999.",
-  "The 1998 Pikachu Illustrator was awarded through illustration contests and is one of the best-known promo cards.",
-  "Gold Star Pokémon cards debuted in the EX era and are prized for their alternate-color artwork.",
-  "A card's condition is assessed across centering, corners, edges, and surface—not just the front.",
-  "Pokémon card set symbols and numbering help collectors identify a card's release and rarity.",
-  "Modern Special Illustration Rare cards often use etched texture that continues through the artwork.",
-  "The first English Pokémon TCG expansion was Base Set, released in 1999.",
+  "The Pokémon TCG launched in Japan in October 1996.",
+  "Pikachu Illustrator was never sold in stores — around 39 copies were given as contest prizes in CoroCoro magazine.",
+  "A graded Pikachu Illustrator sold for over $5 million in 2022, making it the most expensive Pokémon card ever sold.",
+  'The "1st Edition" stamp marks cards from a set\'s very first print run.',
+  "Gold Star Pokémon appear roughly once per 72 booster packs.",
+  'Umbreon VMAX Alt Art\'s fan nickname is "Moonbreon."',
+  "Base Set Charizard's Fire Spin attack needs 4 Energy cards — that's why it was hard to play, despite being the most wanted card.",
+  "Fake cards often have a brighter or duller back-blue than real ones — comparing backs is the fastest first check.",
+  "Charizard has appeared in more special illustrations than any other Pokémon.",
+  'Modern "rotation" removes older sets from tournament play every year — old cards stay collectible even when unplayable.',
 ];
 
 function dayOfYear(date: Date): number {

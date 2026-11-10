@@ -1,4 +1,12 @@
-import { db, cardsTable, priceHistoryTable } from "@workspace/db";
+import { inArray, sql } from "drizzle-orm";
+import {
+  binderEntriesTable,
+  cardNotesTable,
+  cardsTable,
+  db,
+  favoritesTable,
+  priceHistoryTable,
+} from "@workspace/db";
 import { logger } from "./logger";
 
 type SeedCard = {
@@ -13,15 +21,17 @@ type SeedCard = {
   artist: string;
   imageUrl?: string;
   marketPrice: number;
-  trendPercent: number;
   authenticationTip: string;
   tags: string[];
 };
 
+const fillerAuthenticationTip =
+  "Compare print clarity, card-back color, and edges with a verified card from the same era.";
+
 const seedCards: SeedCard[] = [
   {
     id: "base1-4",
-    name: "Charizard (1st Edition)",
+    name: "Charizard (1st Ed)",
     setName: "Base Set",
     setId: "base1",
     number: "4",
@@ -29,30 +39,35 @@ const seedCards: SeedCard[] = [
     type: "Fire",
     year: 1999,
     artist: "Mitsuhiro Arita",
-    marketPrice: 18500,
-    trendPercent: 8.4,
-    authenticationTip: "Inspect the 1st Edition stamp: authentic copies use a crisp, compact serif mark with consistent ink density. Compare the stamp placement and Base Set shadowless frame against a verified reference.",
+    marketPrice: 7200,
+    authenticationTip: [
+      'The "1st Edition" stamp sits left of the artwork; fakes often use the wrong font or wrong shadow depth.',
+      "Real 1999 cards have a slightly darker card back blue than modern prints — compare against a known-real modern card.",
+      "Hold to a light: real holo stock shows an even glow, fakes look blotchy or too dark.",
+    ].join("\n"),
     tags: ["Charizard", "Vintage", "1st Edition"],
   },
   {
     id: "basep-1",
     name: "Pikachu Illustrator",
-    imageUrl: "/artwork-unavailable.svg",
-    setName: "Japanese Promo",
+    setName: "CoroCoro Promo",
     setId: "basep",
     number: "1",
     rarity: "Promo",
     type: "Lightning",
     year: 1998,
     artist: "Atsuko Nishida",
-    marketPrice: 4250000,
-    trendPercent: 12.2,
-    authenticationTip: "The Illustrator promo has distinctive Japanese text, a pen icon, and a CoroCoro stamp. Authentic specimens should be examined by a reputable grading service; do not rely on a single visual cue.",
+    imageUrl: "/artwork-unavailable.svg",
+    marketPrice: 900000,
+    authenticationTip: [
+      "Never buy this raw (ungraded): with fewer than 40 real copies, only trust PSA/CGC/BGS-graded examples with provenance.",
+      "Fakes usually get the brush-stroke art texture and the Japanese text spacing wrong.",
+    ].join("\n"),
     tags: ["Pikachu", "Promo", "Trophy"],
   },
   {
     id: "swsh7-215",
-    name: "Umbreon VMAX (Alternate Art)",
+    name: "Umbreon VMAX (Alt Art)",
     setName: "Evolving Skies",
     setId: "swsh7",
     number: "215",
@@ -60,40 +75,46 @@ const seedCards: SeedCard[] = [
     type: "Darkness",
     year: 2021,
     artist: "Keiko Fukuyama",
-    marketPrice: 980,
-    trendPercent: 18.6,
-    authenticationTip: "Check the fine texture across the illustration and text box under angled light. Modern alternate arts have a consistent etched finish; flat, blurry print texture can be a warning sign.",
-    tags: ["Umbreon", "Eeveelution", "Alternate Art"],
+    marketPrice: 680,
+    authenticationTip: [
+      'Nicknamed "Moonbreon": check the gold outer border texture — fakes are smoother and shinier.',
+      "Real card text (especially the HP) is crisp under magnification; fakes look slightly blurry.",
+    ].join("\n"),
+    tags: ["Umbreon", "Eeveelution", "Alt Art"],
   },
   {
     id: "sv4pt5-237",
-    name: "Iono (Special Illustration Rare)",
+    name: "Iono (SIR)",
     setName: "Paldean Fates",
     setId: "sv4pt5",
     number: "237",
     rarity: "Special Illustration Rare",
-    type: "Supporter",
+    type: "Psychic",
     year: 2024,
     artist: "Naoki Saito",
-    marketPrice: 125,
-    trendPercent: -7.5,
-    authenticationTip: "Look for crisp micro-patterns in the full-art background and clean text edges. The foil texture should continue consistently through the printed illustration without a glossy sticker-like surface.",
+    marketPrice: 55,
+    authenticationTip: [
+      "Modern Scarlet & Violet fakes are very common: real SIRs have a textured, almost linen-like foil you can feel with a fingertip.",
+      "The yellow border on fakes is often too bright or orange-ish.",
+    ].join("\n"),
     tags: ["Iono", "Trainer", "SIR"],
   },
   {
     id: "swsh8-271",
-    name: "Gengar VMAX (Alternate Art)",
+    name: "Gengar VMAX (Alt Art)",
     setName: "Fusion Strike",
     setId: "swsh8",
     number: "271",
     rarity: "Secret Rare",
-    type: "Psychic",
+    type: "Darkness",
     year: 2021,
     artist: "aky CG Works",
-    marketPrice: 390,
-    trendPercent: 10.8,
-    authenticationTip: "Inspect the repeating etched texture in the artwork and the sharpness of the fine linework. Compare holo reflection and card stock thickness with another known authentic modern VMAX.",
-    tags: ["Gengar", "Alternate Art", "VMAX"],
+    marketPrice: 380,
+    authenticationTip: [
+      'Check the "VMAX" text styling and the purple foil pattern — fakes lose the layered rainbow shimmer.',
+      "Corner cuts on real cards are uniformly rounded; fakes often have slightly angled cuts.",
+    ].join("\n"),
+    tags: ["Gengar", "Alt Art", "VMAX"],
   },
   {
     id: "exd-107",
@@ -101,364 +122,367 @@ const seedCards: SeedCard[] = [
     setName: "EX Deoxys",
     setId: "ex8",
     number: "107",
-    rarity: "Gold Star",
+    rarity: "Gold Star Holo",
     type: "Dragon",
     year: 2005,
     artist: "Masakazu Fukuda",
-    marketPrice: 7200,
-    trendPercent: 6.1,
-    authenticationTip: "Gold Star cards have a textured foil treatment and distinctive star-patterned holo. Use a loupe to examine print registration and have high-value copies authenticated professionally.",
+    marketPrice: 3400,
+    authenticationTip: [
+      "The gold star icon next to the name should have clean, sharp points — fakes stamp it too thick.",
+      "Real 2005 holos have a spiral shimmer pattern; counterfeits look glittery or flat.",
+    ].join("\n"),
     tags: ["Rayquaza", "Gold Star", "Vintage"],
   },
   {
     id: "sv3-223",
-    name: "Charizard ex (Special Illustration Rare)",
+    name: "Charizard ex (SIR)",
     setName: "Obsidian Flames",
     setId: "sv3",
     number: "223",
     rarity: "Special Illustration Rare",
-    type: "Darkness",
+    type: "Fire",
     year: 2023,
     artist: "Jiro Sasumo",
-    marketPrice: 145,
-    trendPercent: 4.9,
-    authenticationTip: "Modern SIR cards use a fine, even texture across the art. Check that the texture is integrated with the print and that the set number and small text are sharply registered.",
+    marketPrice: 120,
+    authenticationTip: [
+      'The lowercase "ex" logo has a specific slant and gloss — compare against a verified image at full size.',
+      "Real SIR foil is textured; smooth glossy foil is a red flag.",
+    ].join("\n"),
     tags: ["Charizard", "SIR", "Pokémon ex"],
   },
   {
     id: "neo1-9",
-    name: "Lugia (1st Edition)",
+    name: "Lugia (1st Ed)",
     setName: "Neo Genesis",
     setId: "neo1",
     number: "9",
     rarity: "Rare Holo",
-    type: "Psychic",
+    type: "Colorless",
     year: 2000,
     artist: "Hironobu Yoshida",
-    marketPrice: 6800,
-    trendPercent: -3.2,
-    authenticationTip: "The Neo Genesis 1st Edition stamp should be cleanly printed and correctly positioned. Compare holofoil pattern, font spacing, and the card's edge tint under neutral light.",
+    marketPrice: 2100,
+    authenticationTip: [
+      "The 1st Edition stamp sits right of the artwork (different spot than Base Set) — placement errors are a tell.",
+      "Check the 2000 copyright line and the sparkle holo pattern, which fakes usually get too busy.",
+    ].join("\n"),
     tags: ["Lugia", "Vintage", "1st Edition"],
   },
   {
-    id: "base1-2",
-    name: "Blastoise",
-    setName: "Base Set",
-    setId: "base1",
-    number: "2",
-    rarity: "Rare Holo",
-    type: "Water",
-    year: 1999,
-    artist: "Ken Sugimori",
-    marketPrice: 260,
-    trendPercent: 2.4,
-    authenticationTip: "Base Set holo cards should show an even foil pattern without print-through artifacts. Check the blue frame, symbol-free set layout, and crisp energy symbols.",
-    tags: ["Blastoise", "Vintage", "Starter"],
-  },
-  {
-    id: "base1-15",
-    name: "Venusaur",
-    setName: "Base Set",
-    setId: "base1",
-    number: "15",
-    rarity: "Rare Holo",
+    id: "sv1-13",
+    name: "Sprigatito",
+    setName: "Scarlet & Violet Base",
+    setId: "sv1",
+    number: "13",
+    rarity: "Common",
     type: "Grass",
-    year: 1999,
-    artist: "Mitsuhiro Arita",
-    marketPrice: 185,
-    trendPercent: -1.4,
-    authenticationTip: "Compare the holo stars and text alignment to known Base Set examples. The card should have consistent print saturation and no blurred lettering.",
-    tags: ["Venusaur", "Vintage", "Starter"],
-  },
-  {
-    id: "base1-58",
-    name: "Pikachu",
-    setName: "Base Set",
-    setId: "base1",
-    number: "58",
-    rarity: "Common",
-    type: "Lightning",
-    year: 1999,
-    artist: "Mitsuhiro Arita",
-    marketPrice: 12,
-    trendPercent: 2.1,
-    authenticationTip: "Check the yellow frame color, set-era font, and crisp corner cuts. This common card is a useful Base Set reference for comparing stock and print quality.",
-    tags: ["Pikachu", "Vintage", "Common"],
-  },
-  {
-    id: "base1-46",
-    name: "Charmander",
-    setName: "Base Set",
-    setId: "base1",
-    number: "46",
-    rarity: "Common",
-    type: "Fire",
-    year: 1999,
-    artist: "Mitsuhiro Arita",
-    marketPrice: 8,
-    trendPercent: 1.6,
-    authenticationTip: "Look at the orange saturation and text sharpness. Compare against another verified Base Set common when assessing age-related fading.",
-    tags: ["Charmander", "Charizard", "Common"],
-  },
-  {
-    id: "base1-69",
-    name: "Machop",
-    setName: "Base Set",
-    setId: "base1",
-    number: "52",
-    rarity: "Common",
-    type: "Fighting",
-    year: 1999,
-    artist: "Ken Sugimori",
-    marketPrice: 2,
-    trendPercent: -0.8,
-    authenticationTip: "Use the card's border tone, print clarity, and back color as a general Base Set stock comparison.",
-    tags: ["Machop", "Fighting", "Common"],
-  },
-  {
-    id: "swsh7-204",
-    name: "Rayquaza V (Alternate Art)",
-    setName: "Evolving Skies",
-    setId: "swsh7",
-    number: "194",
-    rarity: "Ultra Rare",
-    type: "Dragon",
-    year: 2021,
-    artist: "Shigenori Negishi",
-    marketPrice: 220,
-    trendPercent: 13.1,
-    authenticationTip: "Modern alternate-art surfaces should show a fine etched texture under raking light. Verify the card number and set symbol against a trusted catalog.",
-    tags: ["Rayquaza", "Alternate Art", "Dragon"],
-  },
-  {
-    id: "swsh7-183",
-    name: "Leafeon VMAX (Alternate Art)",
-    setName: "Evolving Skies",
-    setId: "swsh7",
-    number: "205",
-    rarity: "Secret Rare",
-    type: "Grass",
-    year: 2021,
-    artist: "Keiko Fukuyama",
-    marketPrice: 265,
-    trendPercent: 5.4,
-    authenticationTip: "Look for continuous fine texture across both background and character art. Print should remain crisp around the border and attack text.",
-    tags: ["Leafeon", "Eeveelution", "Alternate Art"],
-  },
-  {
-    id: "swsh8-205",
-    name: "Mew VMAX",
-    setName: "Fusion Strike",
-    setId: "swsh8",
-    number: "114",
-    rarity: "Ultra Rare",
-    type: "Psychic",
-    year: 2021,
-    artist: "PLANETA Mochizuki",
-    marketPrice: 85,
-    trendPercent: -2.7,
-    authenticationTip: "Check the foil surface and the small print details against a verified modern Fusion Strike card. Texture should not look like a smooth overlay.",
-    tags: ["Mew", "VMAX", "Fusion Strike"],
-  },
-  {
-    id: "sv3-125",
-    name: "Pidgeot ex",
-    setName: "Obsidian Flames",
-    setId: "sv3",
-    number: "164",
-    rarity: "Double Rare",
-    type: "Colorless",
     year: 2023,
-    artist: "5ban Graphics",
-    marketPrice: 4,
-    trendPercent: 0.7,
-    authenticationTip: "Modern Double Rare cards have a consistent foil treatment. Confirm set number, type line, and print alignment.",
-    tags: ["Pidgeot", "Pokémon ex", "Rare"],
-  },
-  {
-    id: "sv3-49",
-    name: "Ninetales",
-    setName: "Obsidian Flames",
-    setId: "sv3",
-    number: "038",
-    rarity: "Uncommon",
-    type: "Fire",
-    year: 2023,
-    artist: "Yuka Morii",
-    marketPrice: 1.5,
-    trendPercent: 1.2,
-    authenticationTip: "Inspect the clay-art print for natural texture and clear set numbering. Use the card back and edges to check for unusual stock differences.",
-    tags: ["Ninetales", "Fire", "Uncommon"],
-  },
-  {
-    id: "sv4pt5-25",
-    name: "Pawmi",
-    setName: "Paldean Fates",
-    setId: "sv4pt5",
-    number: "074",
-    rarity: "Common",
-    type: "Lightning",
-    year: 2024,
     artist: "Mizue",
-    marketPrice: 0.5,
-    trendPercent: -0.4,
-    authenticationTip: "Compare the card's surface, text alignment, and reverse side with a known authentic card from the same era.",
-    tags: ["Pawmi", "Paldean Fates", "Common"],
+    marketPrice: 0.15,
+    authenticationTip: fillerAuthenticationTip,
+    tags: ["Sprigatito", "Common"],
   },
   {
-    id: "neo1-60",
-    name: "Cyndaquil",
-    setName: "Neo Genesis",
-    setId: "neo1",
-    number: "57",
+    id: "sv1-23",
+    name: "Fuecoco",
+    setName: "Scarlet & Violet Base",
+    setId: "sv1",
+    number: "23",
     rarity: "Common",
     type: "Fire",
-    year: 2000,
-    artist: "Ken Sugimori",
-    marketPrice: 5,
-    trendPercent: 1.9,
-    authenticationTip: "Inspect the Neo-era font, frame color, and set symbol. Surface wear should be consistent with age and storage.",
-    tags: ["Cyndaquil", "Starter", "Vintage"],
+    year: 2023,
+    artist: "Saya Tsuruta",
+    marketPrice: 0.1,
+    authenticationTip: fillerAuthenticationTip,
+    tags: ["Fuecoco", "Common"],
   },
   {
-    id: "base1-44",
-    name: "Bulbasaur",
-    setName: "Base Set",
-    setId: "base1",
-    number: "44",
-    rarity: "Common",
-    type: "Grass",
-    year: 1999,
-    artist: "Mitsuhiro Arita",
-    marketPrice: 7,
-    trendPercent: 0.9,
-    authenticationTip: "Check the green frame color, clean text registration, and card-back print against a verified Base Set reference.",
-    tags: ["Bulbasaur", "Starter", "Common"],
-  },
-  {
-    id: "base1-63",
-    name: "Squirtle",
-    setName: "Base Set",
-    setId: "base1",
-    number: "63",
+    id: "sv1-50",
+    name: "Quaxly",
+    setName: "Scarlet & Violet Base",
+    setId: "sv1",
+    number: "50",
     rarity: "Common",
     type: "Water",
-    year: 1999,
-    artist: "Mitsuhiro Arita",
-    marketPrice: 8,
-    trendPercent: 1.1,
-    authenticationTip: "Inspect the blue frame and small attack text for crisp print edges. Compare card stock and back colors with another authentic Base Set card.",
-    tags: ["Squirtle", "Starter", "Common"],
+    year: 2023,
+    artist: "Narumi Sato",
+    marketPrice: 0.1,
+    authenticationTip: fillerAuthenticationTip,
+    tags: ["Quaxly", "Common"],
   },
   {
-    id: "base1-68",
-    name: "Vulpix",
-    setName: "Base Set",
-    setId: "base1",
-    number: "68",
+    id: "sv3pt5-25",
+    name: "Pikachu",
+    setName: "Scarlet & Violet 151",
+    setId: "sv3pt5",
+    number: "25",
     rarity: "Common",
-    type: "Fire",
-    year: 1999,
-    artist: "Ken Sugimori",
-    marketPrice: 3,
-    trendPercent: -0.6,
-    authenticationTip: "Look for even orange ink, sharp lettering, and consistent corner cuts for a Base Set-era print.",
-    tags: ["Vulpix", "Fire", "Common"],
-  },
-  {
-    id: "base1-57",
-    name: "Pidgey",
-    setName: "Base Set",
-    setId: "base1",
-    number: "57",
-    rarity: "Common",
-    type: "Colorless",
-    year: 1999,
-    artist: "Ken Sugimori",
-    marketPrice: 2,
-    trendPercent: 0.3,
-    authenticationTip: "Compare the border, text weight, and back print to a verified card from the same set and era.",
-    tags: ["Pidgey", "Colorless", "Common"],
-  },
-  {
-    id: "base1-65",
-    name: "Staryu",
-    setName: "Base Set",
-    setId: "base1",
-    number: "65",
-    rarity: "Common",
-    type: "Water",
-    year: 1999,
+    type: "Lightning",
+    year: 2023,
     artist: "Mitsuhiro Arita",
     marketPrice: 1.5,
-    trendPercent: 0.4,
-    authenticationTip: "Check the small type and attack text for clean registration, then compare the stock and edges with a known authentic card.",
-    tags: ["Staryu", "Water", "Common"],
+    authenticationTip: fillerAuthenticationTip,
+    tags: ["Pikachu", "151", "Common"],
   },
   {
-    id: "base1-45",
-    name: "Caterpie",
-    setName: "Base Set",
-    setId: "base1",
-    number: "45",
+    id: "sv3pt5-4",
+    name: "Charmander",
+    setName: "Scarlet & Violet 151",
+    setId: "sv3pt5",
+    number: "4",
+    rarity: "Common",
+    type: "Fire",
+    year: 2023,
+    artist: "Mitsuhiro Arita",
+    marketPrice: 1,
+    authenticationTip: fillerAuthenticationTip,
+    tags: ["Charmander", "151", "Common"],
+  },
+  {
+    id: "sv3pt5-7",
+    name: "Squirtle",
+    setName: "Scarlet & Violet 151",
+    setId: "sv3pt5",
+    number: "7",
+    rarity: "Common",
+    type: "Water",
+    year: 2023,
+    artist: "Mitsuhiro Arita",
+    marketPrice: 0.75,
+    authenticationTip: fillerAuthenticationTip,
+    tags: ["Squirtle", "151", "Common"],
+  },
+  {
+    id: "sv3pt5-1",
+    name: "Bulbasaur",
+    setName: "Scarlet & Violet 151",
+    setId: "sv3pt5",
+    number: "1",
     rarity: "Common",
     type: "Grass",
-    year: 1999,
+    year: 2023,
     artist: "Mitsuhiro Arita",
-    marketPrice: 1.25,
-    trendPercent: 0.2,
-    authenticationTip: "Use the frame color, card back, and crisp type line as easy-to-check Base Set reference details.",
-    tags: ["Caterpie", "Grass", "Common"],
+    marketPrice: 0.75,
+    authenticationTip: fillerAuthenticationTip,
+    tags: ["Bulbasaur", "151", "Common"],
   },
   {
-    id: "base1-62",
-    name: "Sandshrew",
-    setName: "Base Set",
-    setId: "base1",
-    number: "62",
+    id: "swsh1-153",
+    name: "Wooloo",
+    setName: "Sword & Shield Base",
+    setId: "swsh1",
+    number: "153",
     rarity: "Common",
-    type: "Fighting",
-    year: 1999,
+    type: "Colorless",
+    year: 2020,
+    artist: "Atsuko Nishida",
+    marketPrice: 0.05,
+    authenticationTip: fillerAuthenticationTip,
+    tags: ["Wooloo", "Common"],
+  },
+  {
+    id: "swsh6-28",
+    name: "Snom",
+    setName: "Chilling Reign",
+    setId: "swsh6",
+    number: "28",
+    rarity: "Common",
+    type: "Water",
+    year: 2021,
+    artist: "Miki Tanaka",
+    marketPrice: 0.1,
+    authenticationTip: fillerAuthenticationTip,
+    tags: ["Snom", "Common"],
+  },
+  {
+    id: "swsh12pt5-60",
+    name: "Ralts",
+    setName: "Crown Zenith",
+    setId: "swsh12pt5",
+    number: "60",
+    rarity: "Common",
+    type: "Psychic",
+    year: 2023,
+    artist: "Mizue",
+    imageUrl: "/artwork-unavailable.svg",
+    marketPrice: 0.2,
+    authenticationTip: fillerAuthenticationTip,
+    tags: ["Ralts", "Common"],
+  },
+  {
+    id: "sv1-109",
+    name: "Garchomp",
+    setName: "Scarlet & Violet Base",
+    setId: "sv1",
+    number: "109",
+    rarity: "Uncommon",
+    type: "Dragon",
+    year: 2023,
     artist: "Mitsuhiro Arita",
-    marketPrice: 2.5,
-    trendPercent: -0.2,
-    authenticationTip: "Inspect the card back and fine text for a clean print, and compare it with a verified Base Set common.",
-    tags: ["Sandshrew", "Fighting", "Common"],
+    imageUrl: "/artwork-unavailable.svg",
+    marketPrice: 0.5,
+    authenticationTip: fillerAuthenticationTip,
+    tags: ["Garchomp", "Uncommon"],
+  },
+  {
+    id: "sv1-151",
+    name: "Noctowl",
+    setName: "Scarlet & Violet Base",
+    setId: "sv1",
+    number: "151",
+    rarity: "Common",
+    type: "Colorless",
+    year: 2023,
+    artist: "Mitsuhiro Arita",
+    imageUrl: "/artwork-unavailable.svg",
+    marketPrice: 0.08,
+    authenticationTip: fillerAuthenticationTip,
+    tags: ["Noctowl", "Common"],
   },
 ];
 
+const retiredSeedCardIds = [
+  "base1-2",
+  "base1-15",
+  "base1-58",
+  "base1-46",
+  "base1-69",
+  "swsh7-204",
+  "swsh7-183",
+  "swsh8-205",
+  "sv3-125",
+  "sv3-49",
+  "sv4pt5-25",
+  "neo1-60",
+  "base1-44",
+  "base1-63",
+  "base1-68",
+  "base1-57",
+  "base1-65",
+  "base1-45",
+  "base1-62",
+];
+
+/**
+ * Stable simulated daily prices copied from the repository's seed-content spec.
+ * Day numbers are mapped to calendar dates when persisted to PostgreSQL.
+ */
+export function priceHistory(base: number, days = 30): Array<{ day: number; price: number }> {
+  const history: Array<{ day: number; price: number }> = [];
+  let seed = Math.round(base * 100) || 1;
+  let price = base;
+  for (let d = days; d >= 1; d -= 1) {
+    seed = (seed * 9301 + 49297) % 233280;
+    const wobble = (seed / 233280 - 0.5) * 0.06;
+    price = Math.max(base * 0.8, Math.min(base * 1.2, price * (1 + wobble)));
+    history.push({ day: days - d + 1, price: Math.round(price * 100) / 100 });
+  }
+  return history;
+}
+
+function imageUrl(card: SeedCard): string {
+  return card.imageUrl
+    ?? `https://images.pokemontcg.io/${card.setId}/${card.number.replace(/^0+/, "")}_hires.png`;
+}
+
 export async function seedCatalog(): Promise<void> {
-  const existing = await db.select({ id: cardsTable.id }).from(cardsTable);
-  const existingIds = new Set(existing.map((card) => card.id));
-  const missingCards = seedCards.filter((card) => !existingIds.has(card.id));
-  if (missingCards.length === 0) return;
+  const seedIds = seedCards.map((card) => card.id);
+  const existingLegacy = await db
+    .select({ id: cardsTable.id })
+    .from(cardsTable)
+    .where(inArray(cardsTable.id, retiredSeedCardIds));
+  const legacyIds = existingLegacy.map((card) => card.id);
 
-  await db.insert(cardsTable).values(
-    missingCards.map((card) => ({
+  const referencedLegacyIds = new Set<string>();
+  if (legacyIds.length > 0) {
+    const [binderRefs, favoriteRefs, noteRefs] = await Promise.all([
+      db.select({ cardId: binderEntriesTable.cardId }).from(binderEntriesTable)
+        .where(inArray(binderEntriesTable.cardId, legacyIds)),
+      db.select({ cardId: favoritesTable.cardId }).from(favoritesTable)
+        .where(inArray(favoritesTable.cardId, legacyIds)),
+      db.select({ cardId: cardNotesTable.cardId }).from(cardNotesTable)
+        .where(inArray(cardNotesTable.cardId, legacyIds)),
+    ]);
+    for (const ref of [...binderRefs, ...favoriteRefs, ...noteRefs]) {
+      referencedLegacyIds.add(ref.cardId);
+    }
+  }
+  const removableLegacyIds = legacyIds.filter((id) => !referencedLegacyIds.has(id));
+  const retainedLegacyIds = legacyIds.filter((id) => referencedLegacyIds.has(id));
+  if (retainedLegacyIds.length > 0) {
+    logger.warn(
+      { cardIds: retainedLegacyIds },
+      "Kept retired seed cards that still have collector data",
+    );
+  }
+
+  const histories = new Map<string, Array<{ day: number; price: number }>>();
+  const cards = seedCards.map((card) => {
+    const history = priceHistory(card.marketPrice);
+    histories.set(card.id, history);
+    const first = history[0]?.price ?? card.marketPrice;
+    const last = history[history.length - 1]?.price ?? card.marketPrice;
+    return {
       ...card,
-      imageUrl: card.imageUrl ?? `https://images.pokemontcg.io/${card.setId}/${card.number.replace(/^0+/, "")}_hires.png`,
-    })),
-  );
+      imageUrl: imageUrl(card),
+      trendPercent: Number((((last - first) / first) * 100).toFixed(2)),
+    };
+  });
 
-  const points: Array<typeof priceHistoryTable.$inferInsert> = [];
   const today = new Date();
-  for (const card of missingCards) {
-    for (let offset = 29; offset >= 0; offset -= 1) {
-      const day = new Date(today);
-      day.setUTCDate(day.getUTCDate() - offset);
-      const dayString = day.toISOString().slice(0, 10);
-      const progress = (29 - offset) / 29;
-      const drift = 1 + ((card.trendPercent / 100) * progress);
-      const wave = 1 + Math.sin((offset + missingCards.indexOf(card) * 3) * 0.8) * 0.018;
-      const price = Math.max(0.1, card.marketPrice / drift * wave);
-      points.push({
-        id: `${card.id}-${dayString}`,
+  today.setUTCHours(0, 0, 0, 0);
+  const historyRows: Array<typeof priceHistoryTable.$inferInsert> = [];
+  for (const card of seedCards) {
+    const history = histories.get(card.id) ?? [];
+    for (const point of history) {
+      const date = new Date(today);
+      date.setUTCDate(date.getUTCDate() - (history.length - point.day));
+      const day = date.toISOString().slice(0, 10);
+      historyRows.push({
+        id: `${card.id}-${day}`,
         cardId: card.id,
-        day: dayString,
-        value: Number(price.toFixed(2)),
+        day,
+        value: point.price,
       });
     }
   }
-  await db.insert(priceHistoryTable).values(points).onConflictDoNothing();
-  logger.info({ cardCount: missingCards.length }, "Added cards to the PokeVault catalog");
+
+  await db.transaction(async (tx) => {
+    await tx
+      .insert(cardsTable)
+      .values(cards)
+      .onConflictDoUpdate({
+        target: cardsTable.id,
+        set: {
+          name: sql`excluded.name`,
+          setName: sql`excluded.set_name`,
+          setId: sql`excluded.set_id`,
+          number: sql`excluded.number`,
+          rarity: sql`excluded.rarity`,
+          type: sql`excluded.type`,
+          year: sql`excluded.year`,
+          artist: sql`excluded.artist`,
+          imageUrl: sql`excluded.image_url`,
+          marketPrice: sql`excluded.market_price`,
+          trendPercent: sql`excluded.trend_percent`,
+          authenticationTip: sql`excluded.authentication_tip`,
+          tags: sql`excluded.tags`,
+        },
+      });
+    await tx
+      .delete(priceHistoryTable)
+      .where(inArray(priceHistoryTable.cardId, seedIds));
+    await tx.insert(priceHistoryTable).values(historyRows);
+    if (removableLegacyIds.length > 0) {
+      await tx.delete(cardsTable).where(inArray(cardsTable.id, removableLegacyIds));
+    }
+  });
+
+  logger.info(
+    {
+      cardCount: seedCards.length,
+      historyPointCount: historyRows.length,
+      removedLegacyCardCount: removableLegacyIds.length,
+    },
+    "Synchronized the PokeVault seed catalog",
+  );
 }
