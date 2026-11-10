@@ -42,6 +42,7 @@ Six domain views: overview, searchable/filterable card index, card detail, multi
 ## User preferences
 
 _Populate as you build — explicit user instructions worth remembering across sessions._
+- Use the connected GitHub repository as the source of truth for ongoing project work.
 
 ## Gotchas
 
