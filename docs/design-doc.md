@@ -133,11 +133,61 @@ A Pokémon TCG web app for collectors, traders, and competitive players. Version
 
 - Live on Replit, accessible via the public Replit URL; database seeded on boot so a fresh visitor sees full content immediately.
 
-## 12. Brand Style
+## 12. Design System & UI Polish (Collectr-inspired)
 
-- **Colors:** Poké Red `#EE1515` (primary buttons/accents), Base Yellow `#FFCB05` (highlights), Deep Navy `#0A1E3C` (dark mode base), Binder Cream `#FFF8E7` (light mode background).
-- **Fonts:** Lilita One (headings, playful card-shop feel), Nunito (body text, easy to read).
-- **Art rules:** card images hotlinked from PokéTCG.io; all other art is original CSS/SVG (logos, icons, backgrounds); no official Pokémon logos in the app chrome.
+**Overall feel:** a stock-trading app for cards — dark, sleek, data-forward. Dark mode is the DEFAULT theme; light mode is the alternate.
+
+**Design tokens (CSS variables in `:root`, one `styles.css`):**
+
+```css
+:root {
+  --bg: #0A1E3C;             /* Deep Navy base — dark default */
+  --surface: #12294A;        /* cards and panels */
+  --surface-border: #1E3A63;
+  --text: #EEF4FF;
+  --text-muted: #8FA6C9;
+  --accent: #EE1515;         /* Poké Red — primary actions only */
+  --accent-2: #FFCB05;       /* Base Yellow — highlights */
+  --gain: #2ECC71;           /* price up */
+  --loss: #FF5A5A;           /* price down */
+  --radius: 14px;
+  --radius-sm: 8px;
+  --shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  --font-head: 'Outfit', sans-serif;
+  --font-body: 'Nunito', sans-serif;
+}
+
+[data-theme="light"] {
+  --bg: #FFF8E7;             /* Binder Cream */
+  --surface: #FFFFFF;
+  --surface-border: #E8DFC8;
+  --text: #0A1E3C;
+  --text-muted: #5A6B85;
+  --shadow: 0 8px 24px rgba(10, 30, 60, 0.12);
+}
+```
+
+**Fonts:** Outfit for headings (sleek and modern, the "pro" look) + Nunito for body. (Alternative: keep Lilita One headings for a playful card-shop feel — but Outfit reads more professional.)
+
+**Collectr-style data moments:**
+- **Hero stat tiles** on Home, like Collectr's landing stats: big numbers for "cards tracked", "sets covered", "total portfolio value"
+- **Top 10 Movers** with green ▲ / red ▼ arrows and % change per card
+- **Binder portfolio chart** styled like a stock line graph with a gradient fill and total value + 30-day % gain/loss header
+- Every price anywhere in the app shows its direction color (green up, red down)
+
+**Card grid:**
+- 14px rounded corners, soft shadow, hover lift (`translateY(-4px)` + stronger shadow, 200ms ease)
+- Rarity pills color-coded: Common gray, Uncommon green, Rare blue, Holo gold, Secret/SIR purple, Promo/Gold Star red
+- Price chip pinned to the bottom of every card tile
+
+**Polish checklist:**
+- One spacing scale used everywhere: 4 / 8 / 12 / 16 / 24 / 32px
+- Skeleton loaders while data loads (no blank flashes)
+- Visible focus outlines for keyboard users; aria-labels on icon-only buttons
+- Empty states with a small original SVG illustration + one friendly sentence
+- Toasts slide in bottom-right; error banners sit at the top of forms in a red-tinted panel
+
+**Art rules:** card images hotlinked from PokéTCG.io; all other art is original CSS/SVG (logos, icons, backgrounds); no official Pokémon logos in the app chrome.
 
 ## 13. Low-Fi Wireframes (one per view)
 
