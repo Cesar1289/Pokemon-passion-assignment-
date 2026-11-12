@@ -22,4 +22,5 @@ export interface Card {
   authenticationTip: string;
   tags: string[];
   isFavorite: boolean;
+  isWishListed?: boolean;
 }

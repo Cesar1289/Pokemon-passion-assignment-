@@ -69,6 +69,7 @@ export interface Card {
   authenticationTip: string;
   tags: string[];
   isFavorite: boolean;
+  isWishListed?: boolean;
 }
 
 export type CardDetail = Card & {
@@ -158,6 +159,11 @@ export interface BinderEntry {
   notes: string;
   card: Card;
   totalValue: number;
+}
+
+export interface WishListEntry {
+  cardId: string;
+  card: Card;
 }
 
 export type BinderEntryInputCondition = typeof BinderEntryInputCondition[keyof typeof BinderEntryInputCondition];

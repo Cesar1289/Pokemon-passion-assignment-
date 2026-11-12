@@ -20,3 +20,4 @@
 export * from "./cards";
 export * from "./collections";
 export * from "./users";
+export * from "./wish-list";

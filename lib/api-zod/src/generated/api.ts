@@ -99,7 +99,8 @@ export const GetDashboardResponse = zod.object({
   "trendPercent": zod.number(),
   "authenticationTip": zod.string(),
   "tags": zod.array(zod.string()),
-  "isFavorite": zod.boolean()
+  "isFavorite": zod.boolean(),
+  "isWishListed": zod.boolean().optional()
 })),
   "dailyFact": zod.string(),
   "binderCount": zod.number().int(),
@@ -137,7 +138,8 @@ export const ListCardsResponseItem = zod.object({
   "trendPercent": zod.number(),
   "authenticationTip": zod.string(),
   "tags": zod.array(zod.string()),
-  "isFavorite": zod.boolean()
+  "isFavorite": zod.boolean(),
+  "isWishListed": zod.boolean().optional()
 })
 export const ListCardsResponse = zod.array(ListCardsResponseItem)
 
@@ -164,7 +166,8 @@ export const GetCardResponse = zod.object({
   "trendPercent": zod.number(),
   "authenticationTip": zod.string(),
   "tags": zod.array(zod.string()),
-  "isFavorite": zod.boolean()
+  "isFavorite": zod.boolean(),
+  "isWishListed": zod.boolean().optional()
 }).and(zod.object({
   "history": zod.array(zod.object({
   "day": zod.string(),
@@ -185,7 +188,8 @@ export const GetCardResponse = zod.object({
   "trendPercent": zod.number(),
   "authenticationTip": zod.string(),
   "tags": zod.array(zod.string()),
-  "isFavorite": zod.boolean()
+  "isFavorite": zod.boolean(),
+  "isWishListed": zod.boolean().optional()
 }))
 }))
 
@@ -268,7 +272,8 @@ export const ListBinderEntriesResponseItem = zod.object({
   "trendPercent": zod.number(),
   "authenticationTip": zod.string(),
   "tags": zod.array(zod.string()),
-  "isFavorite": zod.boolean()
+  "isFavorite": zod.boolean(),
+  "isWishListed": zod.boolean().optional()
 }),
   "totalValue": zod.number()
 })
@@ -312,10 +317,84 @@ export const CreateBinderEntryResponse = zod.object({
   "trendPercent": zod.number(),
   "authenticationTip": zod.string(),
   "tags": zod.array(zod.string()),
-  "isFavorite": zod.boolean()
+  "isFavorite": zod.boolean(),
+  "isWishListed": zod.boolean().optional()
 }),
   "totalValue": zod.number()
 })
+
+
+/**
+ * @summary List the signed-in user's wished-for cards
+ */
+export const ListWishListResponseItem = zod.object({
+  "cardId": zod.string(),
+  "card": zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "setName": zod.string(),
+  "setId": zod.string(),
+  "number": zod.string(),
+  "rarity": zod.string(),
+  "type": zod.string(),
+  "year": zod.number().int(),
+  "artist": zod.string(),
+  "imageUrl": zod.string(),
+  "marketPrice": zod.number(),
+  "trendPercent": zod.number(),
+  "authenticationTip": zod.string(),
+  "tags": zod.array(zod.string()),
+  "isFavorite": zod.boolean(),
+  "isWishListed": zod.boolean().optional()
+})
+})
+export const ListWishListResponse = zod.array(ListWishListResponseItem)
+
+
+/**
+ * @summary Add a catalog card to the signed-in user's wish list
+ */
+
+
+
+export const AddWishListItemParams = zod.object({
+  "cardId": zod.coerce.string().min(1)
+})
+
+export const AddWishListItemResponse = zod.object({
+  "cardId": zod.string(),
+  "card": zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "setName": zod.string(),
+  "setId": zod.string(),
+  "number": zod.string(),
+  "rarity": zod.string(),
+  "type": zod.string(),
+  "year": zod.number().int(),
+  "artist": zod.string(),
+  "imageUrl": zod.string(),
+  "marketPrice": zod.number(),
+  "trendPercent": zod.number(),
+  "authenticationTip": zod.string(),
+  "tags": zod.array(zod.string()),
+  "isFavorite": zod.boolean(),
+  "isWishListed": zod.boolean().optional()
+})
+})
+
+
+/**
+ * @summary Remove a card from the signed-in user's wish list
+ */
+
+
+
+export const RemoveWishListItemParams = zod.object({
+  "cardId": zod.coerce.string().min(1)
+})
+
+export const RemoveWishListItemResponse = zod.void()
 
 
 /**
@@ -380,7 +459,8 @@ export const UpdateBinderEntryResponse = zod.object({
   "trendPercent": zod.number(),
   "authenticationTip": zod.string(),
   "tags": zod.array(zod.string()),
-  "isFavorite": zod.boolean()
+  "isFavorite": zod.boolean(),
+  "isWishListed": zod.boolean().optional()
 }),
   "totalValue": zod.number()
 })
@@ -443,7 +523,8 @@ export const GetCommunityBinderResponse = zod.object({
   "trendPercent": zod.number(),
   "authenticationTip": zod.string(),
   "tags": zod.array(zod.string()),
-  "isFavorite": zod.boolean()
+  "isFavorite": zod.boolean(),
+  "isWishListed": zod.boolean().optional()
 })
 })),
   "portfolioValue": zod.number().nullable()

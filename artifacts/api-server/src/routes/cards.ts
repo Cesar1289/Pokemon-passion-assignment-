@@ -1,6 +1,6 @@
 import { and, asc, desc, eq, ilike, inArray, or } from "drizzle-orm";
 import { Router, type IRouter } from "express";
-import { db, cardsTable, cardNotesTable, favoritesTable, priceHistoryTable } from "@workspace/db";
+import { db, cardsTable, cardNotesTable, favoritesTable, priceHistoryTable, wishListTable } from "@workspace/db";
 import {
   AddFavoriteParams,
   GetCardNoteParams,
@@ -21,10 +21,12 @@ const router: IRouter = Router();
 function cardDto(
   card: typeof cardsTable.$inferSelect,
   isFavorite = false,
+  isWishListed = false,
 ): Record<string, unknown> {
   return {
     ...card,
     isFavorite,
+    isWishListed,
   };
 }
 
@@ -34,6 +36,15 @@ async function favoriteIds(userId: number, cardIds: string[]): Promise<Set<strin
     .select({ cardId: favoritesTable.cardId })
     .from(favoritesTable)
     .where(and(eq(favoritesTable.userId, userId), inArray(favoritesTable.cardId, cardIds)));
+  return new Set(rows.map((row) => row.cardId));
+}
+
+async function wishListIds(userId: number, cardIds: string[]): Promise<Set<string>> {
+  if (cardIds.length === 0) return new Set();
+  const rows = await db
+    .select({ cardId: wishListTable.cardId })
+    .from(wishListTable)
+    .where(and(eq(wishListTable.userId, userId), inArray(wishListTable.cardId, cardIds)));
   return new Set(rows.map((row) => row.cardId));
 }
 
@@ -81,10 +92,15 @@ router.get("/cards", async (req, res): Promise<void> => {
     res.json(ListCardsResponse.parse([]));
     return;
   }
-  const favorites = user ? await favoriteIds(user.id, cards.map((card) => card.id)) : new Set<string>();
+  const [favorites, wishList] = user
+    ? await Promise.all([
+        favoriteIds(user.id, cards.map((card) => card.id)),
+        wishListIds(user.id, cards.map((card) => card.id)),
+      ])
+    : [new Set<string>(), new Set<string>()];
   const result = cards
     .filter((card) => !favoritesOnly || favorites.has(card.id))
-    .map((card) => cardDto(card, favorites.has(card.id)));
+    .map((card) => cardDto(card, favorites.has(card.id), wishList.has(card.id)));
   res.json(ListCardsResponse.parse(result));
 });
 
@@ -121,11 +137,14 @@ router.get("/cards/:cardId", async (req, res): Promise<void> => {
   }
 
   const user = await currentUser(req);
-  const favorites = user ? await favoriteIds(user.id, [card.id, ...related.map((item) => item.id)]) : new Set<string>();
+  const cardIds = [card.id, ...related.map((item) => item.id)];
+  const [favorites, wishList] = user
+    ? await Promise.all([favoriteIds(user.id, cardIds), wishListIds(user.id, cardIds)])
+    : [new Set<string>(), new Set<string>()];
   const result = {
-    ...cardDto(card, favorites.has(card.id)),
+    ...cardDto(card, favorites.has(card.id), wishList.has(card.id)),
     history,
-    relatedCards: related.map((item) => cardDto(item, favorites.has(item.id))),
+    relatedCards: related.map((item) => cardDto(item, favorites.has(item.id), wishList.has(item.id))),
   };
   res.json(GetCardResponse.parse(result));
 });

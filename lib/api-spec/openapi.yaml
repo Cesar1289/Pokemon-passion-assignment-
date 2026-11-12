@@ -16,6 +16,8 @@ tags:
     description: Catalog and card detail operations
   - name: binder
     description: Personal collection management
+  - name: wish-list
+    description: Personal card wish list management
   - name: dashboard
     description: Collector dashboard summaries
   - name: community
@@ -325,6 +327,80 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+  /wish-list:
+    get:
+      operationId: listWishList
+      tags: [wish-list]
+      summary: List the signed-in user's wished-for cards
+      responses:
+        "200":
+          description: Personal wish list with current card prices
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WishListEntry"
+        "401":
+          description: Sign-in required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /wish-list/{cardId}:
+    parameters:
+      - in: path
+        name: cardId
+        required: true
+        schema: { type: string, minLength: 1 }
+    post:
+      operationId: addWishListItem
+      tags: [wish-list]
+      summary: Add a catalog card to the signed-in user's wish list
+      responses:
+        "201":
+          description: Card added to the wish list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WishListEntry"
+        "400":
+          description: Invalid card ID
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Sign-in required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Card not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    delete:
+      operationId: removeWishListItem
+      tags: [wish-list]
+      summary: Remove a card from the signed-in user's wish list
+      responses:
+        "204":
+          description: Card removed from the wish list
+        "400":
+          description: Invalid card ID
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Sign-in required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
   /binder/settings:
     get:
       operationId: getBinderSettings
@@ -532,6 +608,7 @@ components:
         authenticationTip: { type: string }
         tags: { type: array, items: { type: string } }
         isFavorite: { type: boolean }
+        isWishListed: { type: boolean }
       required:
         - id
         - name
@@ -637,6 +714,12 @@ components:
         card: { $ref: "#/components/schemas/Card" }
         totalValue: { type: number }
       required: [id, cardId, condition, quantity, notes, card, totalValue]
+    WishListEntry:
+      type: object
+      properties:
+        cardId: { type: string }
+        card: { $ref: "#/components/schemas/Card" }
+      required: [cardId, card]
     BinderEntryInput:
       type: object
       properties:

@@ -32,3 +32,4 @@ export * from './publicBinderSummary';
 export * from './registerInput';
 export * from './session';
 export * from './user';
+export * from './wishListEntry';

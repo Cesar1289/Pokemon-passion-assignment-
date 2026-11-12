@@ -5,6 +5,7 @@ import {
   binderEntriesTable,
   cardsTable,
   favoritesTable,
+  wishListTable,
 } from "@workspace/db";
 import { GetDashboardResponse } from "@workspace/api-zod";
 import { currentUser } from "../lib/auth";
@@ -39,6 +40,7 @@ router.get("/dashboard", async (req, res): Promise<void> => {
   let binderCount = 0;
   let binderValue = 0;
   let favoriteSet = new Set<string>();
+  let wishListSet = new Set<string>();
   if (user) {
     const entries = await db
       .select({ quantity: binderEntriesTable.quantity, marketPrice: cardsTable.marketPrice })
@@ -47,16 +49,27 @@ router.get("/dashboard", async (req, res): Promise<void> => {
       .where(eq(binderEntriesTable.userId, user.id));
     binderCount = entries.reduce((sum, entry) => sum + entry.quantity, 0);
     binderValue = Number(entries.reduce((sum, entry) => sum + entry.quantity * entry.marketPrice, 0).toFixed(2));
-    const favorites = await db
-      .select({ cardId: favoritesTable.cardId })
-      .from(favoritesTable)
-      .where(eq(favoritesTable.userId, user.id));
+    const [favorites, wishList] = await Promise.all([
+      db
+        .select({ cardId: favoritesTable.cardId })
+        .from(favoritesTable)
+        .where(eq(favoritesTable.userId, user.id)),
+      db
+        .select({ cardId: wishListTable.cardId })
+        .from(wishListTable)
+        .where(eq(wishListTable.userId, user.id)),
+    ]);
     favoriteSet = new Set(favorites.map((favorite) => favorite.cardId));
+    wishListSet = new Set(wishList.map((item) => item.cardId));
   }
 
   res.json(
     GetDashboardResponse.parse({
-      movers: movers.map((card) => ({ ...card, isFavorite: favoriteSet.has(card.id) })),
+      movers: movers.map((card) => ({
+        ...card,
+        isFavorite: favoriteSet.has(card.id),
+        isWishListed: wishListSet.has(card.id),
+      })),
       dailyFact: dailyFacts[dayOfYear(new Date()) % dailyFacts.length],
       binderCount,
       binderValue,

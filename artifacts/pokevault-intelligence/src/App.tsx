@@ -11,11 +11,13 @@ import { toast } from 'sonner';
 import {
   BinderEntry, BinderEntryInputCondition, Card, CommunityBinder, PublicBinderSummary, getGetBinderSettingsQueryKey,
   getGetCardNoteQueryKey, getGetCardQueryKey, getGetCommunityBinderQueryKey, getGetDashboardQueryKey, getGetSessionQueryKey, getHealthCheckQueryKey, getListBinderEntriesQueryKey,
+  getListWishListQueryKey,
   getListPublicBindersQueryKey,
-  getListCardsQueryKey, ListCardsParams, useAddFavorite, useCreateBinderEntry,
+  getListCardsQueryKey, ListCardsParams, useAddFavorite, useAddWishListItem, useCreateBinderEntry,
   useDeleteBinderEntry, useGetBinderSettings, useGetCard, useGetCardNote, useGetCommunityBinder, useGetDashboard, useGetSession,
-  useListBinderEntries, useListCards, useListPublicBinders, useLogin, useLogout, useRegister,
+  useListBinderEntries, useListCards, useListPublicBinders, useListWishList, useLogin, useLogout, useRegister,
   useRemoveFavorite, useSaveCardNote, useUpdateBinderEntry, useHealthCheck,
+  useRemoveWishListItem,
   useUpdateBinderSettings,
 } from '@workspace/api-client-react';
 import NotFound from '@/pages/not-found';
@@ -36,10 +38,10 @@ function Mark({ small = false }: { small?: boolean }) {
   return <span className={`brand-mark ${small ? 'brand-mark-small' : ''}`} aria-hidden="true"><span /><i /><b /></span>;
 }
 
-function Button({ children, onClick, variant = 'solid', className = '', type = 'button', disabled = false }: {
-  children: ReactNode; onClick?: () => void; variant?: 'solid' | 'outline' | 'ghost' | 'warm' | 'danger'; className?: string; type?: 'button' | 'submit'; disabled?: boolean;
+function Button({ children, onClick, variant = 'solid', className = '', type = 'button', disabled = false, dataTestId }: {
+  children: ReactNode; onClick?: () => void; variant?: 'solid' | 'outline' | 'ghost' | 'warm' | 'danger'; className?: string; type?: 'button' | 'submit'; disabled?: boolean; dataTestId?: string;
 }) {
-  return <button type={type} onClick={onClick} disabled={disabled} className={`button button-${variant} ${className}`}>{children}</button>;
+  return <button type={type} onClick={onClick} disabled={disabled} className={`button button-${variant} ${className}`} data-testid={dataTestId}>{children}</button>;
 }
 
 function AppFrame({ children, user }: { children: ReactNode; user: { username: string } | null }) {
@@ -99,6 +101,13 @@ function SkeletonGrid() {
   return <div className="card-grid">{[1, 2, 3, 4].map((n) => <div className="card-skeleton" key={n}><div className="skeleton skeleton-art" /><div className="skeleton skeleton-line" /><div className="skeleton skeleton-line short" /></div>)}</div>;
 }
 
+function WishListMark({ added = false }: { added?: boolean }) {
+  return <span className={`wish-list-mark ${added ? 'wish-list-mark-added' : ''}`} aria-hidden="true">
+    <Heart size={15} fill={added ? 'currentColor' : 'none'} />
+    {!added && <Plus size={8} />}
+  </span>;
+}
+
 function CardArtwork({ src, alt, className, loading = 'lazy' }: {
   src: string; alt: string; className?: string; loading?: 'eager' | 'lazy';
 }) {
@@ -114,22 +123,35 @@ function CardArtwork({ src, alt, className, loading = 'lazy' }: {
   />;
 }
 
-function CardTile({ card, user, onFavorite }: { card: Card; user: { username: string } | null; onFavorite?: (card: Card) => void }) {
+function CardTile({ card, user, onFavorite, onWishList }: {
+  card: Card;
+  user: { username: string } | null;
+  onFavorite?: (card: Card) => void;
+  onWishList: (card: Card) => void;
+}) {
   return <article className="card-tile" data-testid={`card-catalog-${card.id}`}>
     <Link href={`/cards/${encodeURIComponent(card.id)}`} className="tile-image-link" aria-label={`View ${card.name}`}>
       <div className="tile-art-wrap"><span className="card-serial">{card.number}</span><CardArtwork className="card-art" src={card.imageUrl} alt={`${card.name} trading card`} /><span className="tile-rarity">{card.rarity}</span></div>
     </Link>
     <div className="tile-copy">
-      <div className="tile-topline"><span>{card.setName}</span><button className={`favorite-button ${card.isFavorite ? 'is-favorite' : ''}`} title={user ? card.isFavorite ? 'Remove favorite' : 'Add favorite' : 'Sign in to save favorites'} aria-label={card.isFavorite ? 'Remove from favorites' : 'Add to favorites'} data-testid={`button-favorite-${card.id}`} onClick={() => onFavorite?.(card)}><Heart size={16} fill={card.isFavorite ? 'currentColor' : 'none'} /></button></div>
+      <div className="tile-topline"><span>{card.setName}</span><div className="tile-card-actions">
+        <button className={`favorite-button ${card.isFavorite ? 'is-favorite' : ''}`} title={user ? card.isFavorite ? 'Remove favorite' : 'Add favorite' : 'Sign in to save favorites'} aria-label={card.isFavorite ? 'Remove from favorites' : 'Add to favorites'} data-testid={`button-favorite-${card.id}`} onClick={() => onFavorite?.(card)}><Heart size={16} fill={card.isFavorite ? 'currentColor' : 'none'} /></button>
+        <button className={`wish-list-button ${card.isWishListed ? 'is-wish-listed' : ''}`} title={card.isWishListed ? 'Already on your wish list' : user ? 'Add to Wish List' : 'Sign in to add to your Wish List'} aria-label={card.isWishListed ? `${card.name} is on your Wish List` : `Add ${card.name} to Wish List`} data-testid={`button-wishlist-${card.id}`} disabled={card.isWishListed} onClick={() => onWishList(card)}><WishListMark added={card.isWishListed === true} /></button>
+      </div></div>
       <Link href={`/cards/${encodeURIComponent(card.id)}`} className="tile-name">{card.name}</Link>
       <div className="tile-bottom"><strong>{money(card.marketPrice)}</strong><span className={card.trendPercent >= 0 ? 'trend-positive' : 'trend-negative'}>{card.trendPercent >= 0 ? <ArrowUpRight size={13} /> : <ArrowDownRight size={13} />}{pct(card.trendPercent)}</span></div>
     </div>
   </article>;
 }
 
-function CatalogGrid({ cards, user, onFavorite }: { cards: Card[]; user: { username: string } | null; onFavorite: (card: Card) => void }) {
+function CatalogGrid({ cards, user, onFavorite, onWishList }: {
+  cards: Card[];
+  user: { username: string } | null;
+  onFavorite: (card: Card) => void;
+  onWishList: (card: Card) => void;
+}) {
   if (!cards.length) return <div className="empty-state"><div className="empty-icon"><Search /></div><h3>No cards in this pocket</h3><p>Try a different name or loosen your filters to keep exploring.</p></div>;
-  return <div className="card-grid">{cards.map((card) => <CardTile key={card.id} card={card} user={user} onFavorite={onFavorite} />)}</div>;
+  return <div className="card-grid">{cards.map((card) => <CardTile key={card.id} card={card} user={user} onFavorite={onFavorite} onWishList={onWishList} />)}</div>;
 }
 
 function useFavoriteAction(user: { username: string } | null) {
@@ -148,11 +170,43 @@ function useFavoriteAction(user: { username: string } | null) {
   };
 }
 
+function refreshWishListViews(cache: ReturnType<typeof useQueryClient>) {
+  cache.invalidateQueries({ queryKey: getListWishListQueryKey() });
+  cache.invalidateQueries({
+    predicate: (query) => typeof query.queryKey[0] === 'string'
+      && (query.queryKey[0] === '/api/cards' || query.queryKey[0].startsWith('/api/cards/')),
+  });
+  cache.invalidateQueries({ queryKey: getGetDashboardQueryKey() });
+}
+
+function useWishListAction(user: { username: string } | null) {
+  const [, setLocation] = useLocation();
+  const cache = useQueryClient();
+  const add = useAddWishListItem({
+    request: cookieRequest,
+    mutation: {
+      onSuccess: () => {
+        refreshWishListViews(cache);
+        toast.success('Added to your Wish List.');
+      },
+      onError: (error) => toast.error(failureMessage(error)),
+    },
+  });
+  return (card: Card) => {
+    if (!user) {
+      setLocation('/login');
+      return;
+    }
+    if (!card.isWishListed) add.mutate({ cardId: card.id });
+  };
+}
+
 function HomePage({ user }: { user: { username: string } | null }) {
   const [search, setSearch] = useState('');
   const query = useListCards(search ? { search } : undefined, { request: cookieRequest });
   const dashboard = useGetDashboard({ request: cookieRequest });
   const favorites = useFavoriteAction(user);
+  const wishList = useWishListAction(user);
   const cards = query.data ?? [];
   const movers = dashboard.data?.movers ?? [];
   const trendValue = movers.reduce((total, card) => total + card.trendPercent, 0) / (movers.length || 1);
@@ -176,14 +230,14 @@ function HomePage({ user }: { user: { username: string } | null }) {
     </section>
     <section className="content-section">
       <SectionHeading kicker={search ? 'SEARCH RESULTS' : 'TOP 10 MOVERS'} title={search ? `Finding “${search}”` : 'Cards on the move'} note={search ? 'Search by Pokémon, set, or card number.' : 'The ten largest simulated percentage moves in the archive.'} action={<Link className="text-action" href="/cards">Open card index <ArrowRight size={15} /></Link>} />
-      {query.isLoading ? <SkeletonGrid /> : query.isError ? <QueryError error={query.error} retry={() => query.refetch()} /> : <CatalogGrid cards={search ? cards.slice(0, 10) : movers.slice(0, 10)} user={user} onFavorite={favorites} />}
+      {query.isLoading ? <SkeletonGrid /> : query.isError ? <QueryError error={query.error} retry={() => query.refetch()} /> : <CatalogGrid cards={search ? cards.slice(0, 10) : movers.slice(0, 10)} user={user} onFavorite={favorites} onWishList={wishList} />}
     </section>
     <section className="below-grid">
       <div className="fact-panel"><div className="fact-head"><span className="fact-symbol"><Sparkles size={18} /></span><span className="stat-label">TODAY’S FIELD NOTE</span><span className="fact-index">NOTE / 014</span></div><p>{dashboard.data?.dailyFact ?? (dashboard.isLoading ? 'Gathering today’s collector intelligence…' : 'Every card tells a story. Start with the details, and the value follows.')}</p><span className="fact-foot">A LITTLE KNOWLEDGE GOES A LONG WAY</span></div>
       <div className="tool-panel"><div><span className="stat-label">BEFORE YOU TRADE</span><h3>Fair trades<br />start with facts.</h3><p>Put two sides on the table. We’ll do the math.</p><Link className="button button-warm" href="/compare">Open trade lab <ArrowRight size={15} /></Link></div><div className="tool-icon"><Swords size={42} strokeWidth={1.1} /></div></div>
     </section>
     <section className="content-section recent-section"><SectionHeading kicker="THE ARCHIVE" title="Find your next favorite" note="Browse the card index, from chase cards to quiet gems." action={<Link className="text-action" href="/cards">Explore all cards <ArrowRight size={15} /></Link>} />
-      {query.isLoading ? <SkeletonGrid /> : query.isError ? <QueryError error={query.error} retry={() => query.refetch()} /> : <CatalogGrid cards={cards.slice(0, 4)} user={user} onFavorite={favorites} />}
+      {query.isLoading ? <SkeletonGrid /> : query.isError ? <QueryError error={query.error} retry={() => query.refetch()} /> : <CatalogGrid cards={cards.slice(0, 4)} user={user} onFavorite={favorites} onWishList={wishList} />}
     </section>
   </div>;
 }
@@ -236,6 +290,7 @@ function CardsPage({ user }: { user: { username: string } | null }) {
   const result = useListCards(params, { request: cookieRequest });
   const filters = useListCards(undefined, { request: cookieRequest });
   const favorites = useFavoriteAction(user);
+  const wishList = useWishListAction(user);
   const sets = Array.from(new Set((filters.data ?? []).map((card) => card.setName))).sort();
   const types = Array.from(new Set((filters.data ?? []).map((card) => card.type))).sort();
   const rarities = Array.from(new Set((filters.data ?? []).map((card) => card.rarity))).sort();
@@ -250,7 +305,7 @@ function CardsPage({ user }: { user: { username: string } | null }) {
       <button className={`filter-toggle ${favoritesOnly ? 'filter-active' : ''}`} onClick={() => user ? setFavoritesOnly(!favoritesOnly) : setLocation('/login')} data-testid="button-favorites-filter"><Heart size={15} fill={favoritesOnly ? 'currentColor' : 'none'} /> Favorites</button>
       <span className="results-count">{result.data?.length ?? '—'} RECORDS</span>
     </div>
-    {result.isLoading ? <SkeletonGrid /> : result.isError ? <QueryError error={result.error} retry={() => result.refetch()} /> : <CatalogGrid cards={result.data ?? []} user={user} onFavorite={favorites} />}
+    {result.isLoading ? <SkeletonGrid /> : result.isError ? <QueryError error={result.error} retry={() => result.refetch()} /> : <CatalogGrid cards={result.data ?? []} user={user} onFavorite={favorites} onWishList={wishList} />}
   </section>;
 }
 
@@ -270,6 +325,7 @@ function DetailPage({ user }: { user: { username: string } | null }) {
   const [binderNote, setBinderNote] = useState('');
   const cache = useQueryClient();
   const favorites = useFavoriteAction(user);
+  const wishList = useWishListAction(user);
   const saveNote = useSaveCardNote({ request: cookieRequest, mutation: { onSuccess: (result) => { cache.setQueryData(getGetCardNoteQueryKey(cardId), result); setSaved(true); window.setTimeout(() => setSaved(false), 2200); } } });
   const addBinder = useCreateBinderEntry({ request: cookieRequest, mutation: { onSuccess: () => { cache.invalidateQueries({ queryKey: getListBinderEntriesQueryKey() }); cache.invalidateQueries({ queryKey: getGetDashboardQueryKey() }); setAddOpen(false); toast.success('Card added to your binder.'); } } });
   useEffect(() => { setNote(noteQuery.data?.note ?? ''); }, [noteQuery.data?.note, cardId]);
@@ -289,7 +345,7 @@ function DetailPage({ user }: { user: { username: string } | null }) {
         <h1>{card.name}<span className="title-period">.</span></h1>
         <div className="detail-meta"><span>{card.type} type</span><i /> <span>Illustrated by {card.artist}</span></div>
         <div className="detail-price"><div><span className="stat-label">SIMULATED MARKET VALUE</span><strong>{money(card.marketPrice)}</strong></div><span className={`price-change ${card.trendPercent >= 0 ? 'trend-positive' : 'trend-negative'}`}>{card.trendPercent >= 0 ? <ArrowUpRight size={15} /> : <ArrowDownRight size={15} />}{pct(card.trendPercent)} <small>today</small></span></div>
-        <div className="detail-actions"><Button variant="warm" onClick={() => user ? setAddOpen(true) : setLocation('/login')}><Plus size={16} /> Add to binder</Button><Button variant="outline" onClick={() => favorites(card)}><Heart size={16} fill={card.isFavorite ? 'currentColor' : 'none'} /> {card.isFavorite ? 'Saved' : 'Save card'}</Button></div>
+        <div className="detail-actions"><Button variant="warm" onClick={() => user ? setAddOpen(true) : setLocation('/login')}><Plus size={16} /> Add to binder</Button><Button variant="outline" onClick={() => favorites(card)}><Heart size={16} fill={card.isFavorite ? 'currentColor' : 'none'} /> {card.isFavorite ? 'Saved' : 'Save card'}</Button><Button variant="outline" className="wish-list-detail-button" dataTestId="button-add-to-wish-list-detail" disabled={card.isWishListed} onClick={() => wishList(card)}><WishListMark added={card.isWishListed === true} /> {card.isWishListed ? 'On Wish List' : 'Add to Wish List'}</Button></div>
         <div className="card-facts"><div><span>CARD NUMBER</span><b>{card.number}</b></div><div><span>SET</span><b>{card.setName}</b></div><div><span>PRINT YEAR</span><b>{card.year}</b></div><div><span>TYPE</span><b>{card.type}</b></div></div>
         {card.tags?.length > 0 && <div className="tag-row">{card.tags.map((tag) => <span key={tag}>{tag}</span>)}</div>}
       </div>
@@ -303,7 +359,7 @@ function DetailPage({ user }: { user: { username: string } | null }) {
     <section className="note-section"><div className="note-heading"><div><span className="section-kicker">PRIVATE FIELD NOTES</span><h2>Your observations</h2></div><span className="private-label"><Bookmark size={13} /> PRIVATE</span></div>
       {user ? <><textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Condition notes, trade context, or the story behind this card…" maxLength={2000} aria-label="Private card notes" data-testid="input-card-note" /><div className="note-footer"><span>{note.length} / 2,000</span><Button onClick={() => saveNote.mutate({ cardId, data: { note } })} disabled={saveNote.isPending}>{saved ? <><Check size={15} /> Saved</> : saveNote.isPending ? 'Saving…' : 'Save note'}</Button></div>{saveNote.isError && <p className="inline-error">{failureMessage(saveNote.error)}</p>}</> : <div className="note-locked"><p>Sign in to keep private notes attached to this card.</p><Link href="/login" className="text-action">Sign in to continue <ArrowRight size={14} /></Link></div>}
     </section>
-    {card.relatedCards?.length > 0 && <section className="related-section"><SectionHeading kicker="SAME NEIGHBORHOOD" title="Related cards" note="Keep following the thread." /><CatalogGrid cards={card.relatedCards} user={user} onFavorite={favorites} /></section>}
+    {card.relatedCards?.length > 0 && <section className="related-section"><SectionHeading kicker="SAME NEIGHBORHOOD" title="Related cards" note="Keep following the thread." /><CatalogGrid cards={card.relatedCards} user={user} onFavorite={favorites} onWishList={wishList} /></section>}
     {addOpen && <Modal title={`Add ${card.name} to your binder`} onClose={() => setAddOpen(false)}><form className="modal-form" onSubmit={addToBinder}><label>Condition<select value={condition} onChange={(e) => setCondition(e.target.value)}>{conditions.map((value) => <option key={value}>{value}</option>)}</select></label><label>Quantity<div className="quantity-control"><button type="button" aria-label="Decrease quantity" onClick={() => setQuantity(Math.max(1, quantity - 1))}><Minus size={15} /></button><input value={quantity} type="number" min="1" onChange={(e) => setQuantity(Number(e.target.value))} /><button type="button" aria-label="Increase quantity" onClick={() => setQuantity(quantity + 1)}><Plus size={15} /></button></div></label><label>Private note<textarea value={binderNote} maxLength={1000} onChange={(e) => setBinderNote(e.target.value)} placeholder="Optional details about this copy" /></label>{addBinder.isError && <p className="inline-error">{failureMessage(addBinder.error)}</p>}<Button type="submit" disabled={addBinder.isPending}>{addBinder.isPending ? 'Adding…' : 'Add to my binder'}</Button></form></Modal>}
   </div>;
 }
@@ -314,9 +370,19 @@ function Modal({ title, children, onClose }: { title: string; children: ReactNod
 }
 
 function BinderPage({ user }: { user: { username: string } | null }) {
+  const [activeTab, setActiveTab] = useState<'collection' | 'wish-list'>('collection');
   const query = useListBinderEntries({ query: { enabled: !!user, queryKey: getListBinderEntriesQueryKey() }, request: cookieRequest });
   const settingsQuery = useGetBinderSettings({ query: { enabled: !!user, queryKey: getGetBinderSettingsQueryKey() }, request: cookieRequest });
+  const wishListQuery = useListWishList({
+    query: {
+      enabled: !!user,
+      queryKey: getListWishListQueryKey(),
+    },
+    request: cookieRequest,
+  });
   const entries = query.data ?? [];
+  const wishListItems = wishListQuery.data ?? [];
+  const wishListValue = wishListItems.reduce((sum, item) => sum + item.card.marketPrice, 0);
   const [editing, setEditing] = useState<BinderEntry | null>(null);
   const [editCondition, setEditCondition] = useState('');
   const [editQuantity, setEditQuantity] = useState(1);
@@ -332,6 +398,16 @@ function BinderPage({ user }: { user: { username: string } | null }) {
   }, onError: (error) => toast.error(failureMessage(error)) } });
   const update = useUpdateBinderEntry({ request: cookieRequest, mutation: { onSuccess: () => { cache.invalidateQueries({ queryKey: getListBinderEntriesQueryKey() }); cache.invalidateQueries({ queryKey: getGetDashboardQueryKey() }); setEditing(null); toast.success('Binder entry updated.'); } } });
   const remove = useDeleteBinderEntry({ request: cookieRequest, mutation: { onSuccess: () => { cache.invalidateQueries({ queryKey: getListBinderEntriesQueryKey() }); cache.invalidateQueries({ queryKey: getGetDashboardQueryKey() }); setRemoving(null); toast.success('Card removed from your binder.'); } } });
+  const removeWishListItem = useRemoveWishListItem({
+    request: cookieRequest,
+    mutation: {
+      onSuccess: () => {
+        refreshWishListViews(cache);
+        toast.success('Removed from your Wish List.');
+      },
+      onError: (error) => toast.error(failureMessage(error)),
+    },
+  });
   if (!user) return <div className="binder-gate"><div className="gate-mark"><BookOpen size={25} /></div><span className="section-kicker">YOUR PRIVATE COLLECTION</span><h1>A place for<br /><em>the keepers.</em></h1><p>Sign in to catalog your cards, track your collection’s simulated value, and keep the details close.</p><Link href="/login" className="button button-warm">Sign in to your vault <ArrowRight size={16} /></Link><span className="gate-foot">Your binder is private to your account.</span></div>;
   if (query.isLoading) return <div className="page-loading"><div className="skeleton skeleton-line" /><div className="skeleton skeleton-line short" /><SkeletonGrid /></div>;
   if (query.isError) return <QueryError error={query.error} retry={() => query.refetch()} />;
@@ -341,17 +417,31 @@ function BinderPage({ user }: { user: { username: string } | null }) {
   const editEntry = (entry: BinderEntry) => { setEditing(entry); setEditCondition(entry.condition); setEditQuantity(entry.quantity); setEditNotes(entry.notes); };
   return <div className="binder-page">
     <div className="page-title-row"><div><div className="eyebrow"><span className="eyebrow-line" />YOUR COLLECTION / PRIVATE</div><h1>The binder<span className="title-period">.</span></h1><p>Every copy, carefully accounted for.</p></div><div className="binder-actions"><button className="button button-outline" onClick={() => exportBinderCsv(entries)} disabled={!entries.length}><Download size={15} /> Export CSV</button><Link href="/cards" className="button button-warm"><Plus size={16} /> Add cards</Link></div></div>
-    <div className="binder-summary"><div><span className="stat-label">TOTAL COPIES</span><strong>{entries.reduce((sum, entry) => sum + entry.quantity, 0)}</strong><small>{entries.length} unique {entries.length === 1 ? 'card' : 'cards'}</small></div><div><span className="stat-label">SIMULATED VALUE</span><strong>{money(total)}</strong><small>Based on current market trace</small></div><div className="binder-summary-note"><Layers3 size={21} /><p>Condition matters. Keep each copy’s details current for a clearer picture.</p></div></div>
-    <section className="sharing-panel" aria-labelledby="sharing-title">
+    <div className="binder-tabs" role="tablist" aria-label="Binder views">
+      <button id="tab-collection" role="tab" aria-selected={activeTab === 'collection'} aria-controls="panel-collection" data-testid="tab-binder-collection" className={activeTab === 'collection' ? 'binder-tab binder-tab-active' : 'binder-tab'} onClick={() => setActiveTab('collection')}><BookOpen size={15} /> My Collection</button>
+      <button id="tab-wish-list" role="tab" aria-selected={activeTab === 'wish-list'} aria-controls="panel-wish-list" data-testid="tab-binder-wish-list" className={activeTab === 'wish-list' ? 'binder-tab binder-tab-active' : 'binder-tab'} onClick={() => setActiveTab('wish-list')}><WishListMark added /> Wish List <span className="binder-tab-count">{wishListItems.length}</span></button>
+    </div>
+    {activeTab === 'collection' ? <div id="panel-collection" role="tabpanel" aria-labelledby="tab-collection">
+      <div className="binder-summary"><div><span className="stat-label">TOTAL COPIES</span><strong>{entries.reduce((sum, entry) => sum + entry.quantity, 0)}</strong><small>{entries.length} unique {entries.length === 1 ? 'card' : 'cards'}</small></div><div><span className="stat-label">SIMULATED VALUE</span><strong>{money(total)}</strong><small>Based on current market trace</small></div><div className="binder-summary-note"><Layers3 size={21} /><p>Condition matters. Keep each copy’s details current for a clearer picture.</p></div></div>
+      <section className="sharing-panel" aria-labelledby="sharing-title">
       <div className="sharing-intro"><div className="sharing-emblem">{settings.isPublic ? <Eye size={20} /> : <ShieldCheck size={20} />}</div><div><span className="section-kicker">YOUR PRIVACY, YOUR CALL</span><h2 id="sharing-title">Share with care.</h2><p>{settings.isPublic ? 'Your binder appears in Community Binders. Your private notes never leave your vault.' : 'Your binder is private by default. Choose what other collectors can see.'}</p></div></div>
       <div className="sharing-controls">
         <label className="sharing-option"><span className="sharing-option-icon">{settings.isPublic ? <Eye size={16} /> : <ShieldCheck size={16} />}</span><span className="sharing-option-copy"><strong>Public binder</strong><small>Show your card list in Community Binders. Notes are never shared.</small></span><input type="checkbox" role="switch" aria-label="Make binder public" data-testid="switch-binder-public" checked={settings.isPublic} disabled={sharing.isPending || settingsQuery.isLoading} onChange={(event) => updateSharing({ isPublic: event.target.checked })} /><i className="switch-track" /></label>
         <label className={`sharing-option ${!settings.isPublic ? 'sharing-option-muted' : ''}`}><span className="sharing-option-icon">{settings.hideValue ? <EyeOff size={16} /> : <Eye size={16} />}</span><span className="sharing-option-copy"><strong>Hide collection value</strong><small>{settings.hideValue ? 'Visitors see your cards and counts, but not an aggregate value.' : 'Visitors can see the aggregate simulated value.'}</small></span><input type="checkbox" role="switch" aria-label="Hide aggregate collection value" data-testid="switch-binder-hide-value" checked={settings.hideValue} disabled={sharing.isPending || settingsQuery.isLoading || !settings.isPublic} onChange={(event) => updateSharing({ hideValue: event.target.checked })} /><i className="switch-track" /></label>
       </div>
       <div className="sharing-foot"><span className={`privacy-status ${settings.isPublic ? 'privacy-status-public' : ''}`}><i />{settings.isPublic ? 'VISIBLE TO THE COMMUNITY' : 'PRIVATE TO YOUR ACCOUNT'}</span>{settingsQuery.isError && <span className="inline-error">Sharing settings unavailable. <button className="text-action" onClick={() => settingsQuery.refetch()}>Retry</button></span>}{sharing.isPending && <span className="sharing-saving">Saving your preferences…</span>}</div>
-    </section>
-    {!entries.length ? <div className="empty-state binder-empty"><div className="empty-icon"><BookOpen /></div><span className="section-kicker">FIRST PAGE, BLANK</span><h3>Your collection starts with one.</h3><p>Find a card you love and add it here. We’ll keep its value and condition in view.</p><Link href="/cards" className="button button-solid">Browse the card index <ArrowRight size={15} /></Link></div> :
-      <div className="binder-list"><div className="binder-list-heading"><span>CARD / SET</span><span>CONDITION</span><span>QTY.</span><span>EST. VALUE</span><span>TOOLS</span></div>{entries.map((entry) => <article className="binder-row" key={entry.id} data-testid={`binder-entry-${entry.id}`}><Link href={`/cards/${encodeURIComponent(entry.cardId)}`} className="binder-card"><CardArtwork src={entry.card.imageUrl} alt="" /><span><strong>{entry.card.name}</strong><small>{entry.card.setName} · {entry.card.number}</small></span></Link><span className="condition-pill">{entry.condition}</span><span className="binder-qty">{entry.quantity}</span><strong className="binder-value">{money(entry.totalValue)}</strong><div className="row-actions"><button className="icon-button" onClick={() => editEntry(entry)} aria-label={`Edit ${entry.card.name}`} data-testid={`button-edit-entry-${entry.id}`}><SlidersHorizontal size={15} /></button><button className="icon-button danger-icon" onClick={() => setRemoving(entry)} aria-label={`Remove ${entry.card.name}`} data-testid={`button-remove-entry-${entry.id}`}><X size={16} /></button></div>{entry.notes && <p className="binder-note"><Bookmark size={12} /> {entry.notes}</p>}</article>)}</div>}
+      </section>
+      {!entries.length ? <div className="empty-state binder-empty"><div className="empty-icon"><BookOpen /></div><span className="section-kicker">FIRST PAGE, BLANK</span><h3>Your collection starts with one.</h3><p>Find a card you love and add it here. We’ll keep its value and condition in view.</p><Link href="/cards" className="button button-solid">Browse the card index <ArrowRight size={15} /></Link></div> :
+        <div className="binder-list"><div className="binder-list-heading"><span>CARD / SET</span><span>CONDITION</span><span>QTY.</span><span>EST. VALUE</span><span>TOOLS</span></div>{entries.map((entry) => <article className="binder-row" key={entry.id} data-testid={`binder-entry-${entry.id}`}><Link href={`/cards/${encodeURIComponent(entry.cardId)}`} className="binder-card"><CardArtwork src={entry.card.imageUrl} alt="" /><span><strong>{entry.card.name}</strong><small>{entry.card.setName} · {entry.card.number}</small></span></Link><span className="condition-pill">{entry.condition}</span><span className="binder-qty">{entry.quantity}</span><strong className="binder-value">{money(entry.totalValue)}</strong><div className="row-actions"><button className="icon-button" onClick={() => editEntry(entry)} aria-label={`Edit ${entry.card.name}`} data-testid={`button-edit-entry-${entry.id}`}><SlidersHorizontal size={15} /></button><button className="icon-button danger-icon" onClick={() => setRemoving(entry)} aria-label={`Remove ${entry.card.name}`} data-testid={`button-remove-entry-${entry.id}`}><X size={16} /></button></div>{entry.notes && <p className="binder-note"><Bookmark size={12} /> {entry.notes}</p>}</article>)}</div>}
+    </div> : <section id="panel-wish-list" role="tabpanel" aria-labelledby="tab-wish-list" className="wish-list-view">
+      <div className="wish-list-summary"><div><span className="stat-label">WISH LIST VALUE</span><strong data-testid="text-wish-list-value">{wishListQuery.isLoading ? '…' : money(wishListValue)}</strong><small>{wishListItems.length} {wishListItems.length === 1 ? 'card' : 'cards'} on the hunt</small></div><div className="wish-list-summary-note"><Heart size={20} /><p>Keep an eye on the cards you hope to find. Values use the current simulated market price.</p></div></div>
+      {wishListQuery.isLoading ? <div className="wish-list-skeleton" aria-label="Loading Wish List"><div className="skeleton skeleton-art" /><div className="skeleton skeleton-line" /></div> : wishListQuery.isError ? <QueryError error={wishListQuery.error} retry={() => wishListQuery.refetch()} /> : !wishListItems.length ? <div className="empty-state wish-list-empty" data-testid="status-wish-list-empty"><div className="empty-icon"><Heart /></div><span className="section-kicker">THE NEXT CHASE</span><h3>Your wish list is empty — hunt some cards!</h3><p>Save the cards you’re looking for and keep their current simulated value close.</p><Link href="/cards" className="button button-solid">Browse the card index <ArrowRight size={15} /></Link></div> :
+        <div className="wish-list-grid">{wishListItems.map((item) => <article className="wish-list-card" key={item.cardId} data-testid={`wish-list-card-${item.cardId}`}>
+          <Link href={`/cards/${encodeURIComponent(item.cardId)}`} className="wish-list-card-link"><CardArtwork src={item.card.imageUrl} alt={`${item.card.name} card artwork`} /><span><strong>{item.card.name}</strong><small>{item.card.setName} · {item.card.number}</small></span></Link>
+          <div className="wish-list-price"><span>CURRENT SIMULATED PRICE</span><strong>{money(item.card.marketPrice)}</strong></div>
+          <button className="button button-outline wish-list-remove" onClick={() => removeWishListItem.mutate({ cardId: item.cardId })} disabled={removeWishListItem.isPending} aria-label={`Remove ${item.card.name} from Wish List`} data-testid={`button-remove-wish-list-${item.cardId}`}><X size={14} /> Remove</button>
+        </article>)}</div>}
+    </section>}
     {editing && <Modal title={`Edit ${editing.card.name}`} onClose={() => setEditing(null)}><form className="modal-form" onSubmit={(e) => { e.preventDefault(); update.mutate({ entryId: editing.id, data: { condition: editCondition as BinderEntryInputCondition, quantity: Math.max(1, editQuantity), notes: editNotes } }); }}><label>Condition<select value={editCondition} onChange={(e) => setEditCondition(e.target.value)}>{conditions.map((value) => <option key={value}>{value}</option>)}</select></label><label>Quantity<input type="number" min="1" value={editQuantity} onChange={(e) => setEditQuantity(Number(e.target.value))} /></label><label>Notes<textarea maxLength={1000} value={editNotes} onChange={(e) => setEditNotes(e.target.value)} /></label>{update.isError && <p className="inline-error">{failureMessage(update.error)}</p>}<Button type="submit" disabled={update.isPending}>{update.isPending ? 'Updating…' : 'Save changes'}</Button></form></Modal>}
     {removing && <Modal title="Remove this copy?" onClose={() => setRemoving(null)}><p className="confirm-copy">This will remove <strong>{removing.card.name}</strong> from your binder. This action can’t be undone.</p>{remove.isError && <p className="inline-error">{failureMessage(remove.error)}</p>}<div className="modal-actions"><Button variant="outline" onClick={() => setRemoving(null)}>Keep card</Button><Button variant="danger" onClick={() => remove.mutate({ entryId: removing.id })} disabled={remove.isPending}>{remove.isPending ? 'Removing…' : 'Remove copy'}</Button></div></Modal>}
   </div>;
