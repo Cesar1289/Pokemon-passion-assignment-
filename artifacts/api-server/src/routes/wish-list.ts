@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray } from "drizzle-orm";
+import { and, asc, eq, gte, inArray, lte } from "drizzle-orm";
 import { Router, type IRouter } from "express";
 import {
   AddWishListItemParams,
@@ -6,7 +6,7 @@ import {
   ListWishListResponse,
   RemoveWishListItemParams,
 } from "@workspace/api-zod";
-import { db, cardsTable, favoritesTable, wishListTable } from "@workspace/db";
+import { db, cardsTable, favoritesTable, priceHistoryTable, wishListTable } from "@workspace/db";
 import { requireUser } from "../lib/auth";
 
 const router: IRouter = Router();
@@ -30,8 +30,27 @@ async function getWishList(userId: number): Promise<Array<Record<string, unknown
       ),
     );
   const favoriteIds = new Set(favorites.map((favorite) => favorite.cardId));
+  const today = new Date();
+  const start = new Date(today);
+  start.setUTCDate(start.getUTCDate() - 29);
+  const historyRows = await db
+    .select({ cardId: priceHistoryTable.cardId, day: priceHistoryTable.day, value: priceHistoryTable.value })
+    .from(priceHistoryTable)
+    .where(and(
+      inArray(priceHistoryTable.cardId, rows.map(({ item }) => item.cardId)),
+      gte(priceHistoryTable.day, start.toISOString().slice(0, 10)),
+      lte(priceHistoryTable.day, today.toISOString().slice(0, 10)),
+    ))
+    .orderBy(asc(priceHistoryTable.day));
+  const histories = new Map<string, Array<{ day: string; value: number }>>();
+  for (const { cardId, day, value } of historyRows) {
+    const history = histories.get(cardId) ?? [];
+    history.push({ day, value });
+    histories.set(cardId, history);
+  }
   return rows.map(({ item, card }) => ({
     cardId: item.cardId,
+    history: histories.get(item.cardId) ?? [],
     card: {
       ...card,
       isFavorite: favoriteIds.has(card.id),

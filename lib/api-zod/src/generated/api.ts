@@ -327,6 +327,10 @@ export const CreateBinderEntryResponse = zod.object({
 /**
  * @summary List the signed-in user's wished-for cards
  */
+export const listWishListResponseHistoryMax = 30;
+
+
+
 export const ListWishListResponseItem = zod.object({
   "cardId": zod.string(),
   "card": zod.object({
@@ -346,7 +350,11 @@ export const ListWishListResponseItem = zod.object({
   "tags": zod.array(zod.string()),
   "isFavorite": zod.boolean(),
   "isWishListed": zod.boolean().optional()
-})
+}),
+  "history": zod.array(zod.object({
+  "day": zod.string(),
+  "value": zod.number()
+})).max(listWishListResponseHistoryMax).describe('Available simulated daily prices within the last 30 UTC calendar days, including today, ordered oldest first. May be empty or incomplete; independent of the current market price.')
 })
 export const ListWishListResponse = zod.array(ListWishListResponseItem)
 
@@ -360,6 +368,10 @@ export const ListWishListResponse = zod.array(ListWishListResponseItem)
 export const AddWishListItemParams = zod.object({
   "cardId": zod.coerce.string().min(1)
 })
+
+export const addWishListItemResponseHistoryMax = 30;
+
+
 
 export const AddWishListItemResponse = zod.object({
   "cardId": zod.string(),
@@ -380,7 +392,11 @@ export const AddWishListItemResponse = zod.object({
   "tags": zod.array(zod.string()),
   "isFavorite": zod.boolean(),
   "isWishListed": zod.boolean().optional()
-})
+}),
+  "history": zod.array(zod.object({
+  "day": zod.string(),
+  "value": zod.number()
+})).max(addWishListItemResponseHistoryMax).describe('Available simulated daily prices within the last 30 UTC calendar days, including today, ordered oldest first. May be empty or incomplete; independent of the current market price.')
 })
 
 

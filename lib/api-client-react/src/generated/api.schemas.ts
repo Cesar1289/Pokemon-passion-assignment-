@@ -164,6 +164,11 @@ export interface BinderEntry {
 export interface WishListEntry {
   cardId: string;
   card: Card;
+  /**
+     * Available simulated daily prices within the last 30 UTC calendar days, including today, ordered oldest first. May be empty or incomplete; independent of the current market price.
+     * @maxItems 30
+     */
+  history: PricePoint[];
 }
 
 export type BinderEntryInputCondition = typeof BinderEntryInputCondition[keyof typeof BinderEntryInputCondition];

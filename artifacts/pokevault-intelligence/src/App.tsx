@@ -22,6 +22,7 @@ import {
 } from '@workspace/api-client-react';
 import NotFound from '@/pages/not-found';
 import { ErrorBoundary } from '@/components/error-boundary';
+import { WishListTrend } from '@/components/wish-list-trend';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
 
@@ -377,6 +378,7 @@ function BinderPage({ user }: { user: { username: string } | null }) {
     query: {
       enabled: !!user,
       queryKey: getListWishListQueryKey(),
+      refetchInterval: 60_000,
     },
     request: cookieRequest,
   });
@@ -438,7 +440,7 @@ function BinderPage({ user }: { user: { username: string } | null }) {
       {wishListQuery.isLoading ? <div className="wish-list-skeleton" aria-label="Loading Wish List"><div className="skeleton skeleton-art" /><div className="skeleton skeleton-line" /></div> : wishListQuery.isError ? <QueryError error={wishListQuery.error} retry={() => wishListQuery.refetch()} /> : !wishListItems.length ? <div className="empty-state wish-list-empty" data-testid="status-wish-list-empty"><div className="empty-icon"><Heart /></div><span className="section-kicker">THE NEXT CHASE</span><h3>Your wish list is empty — hunt some cards!</h3><p>Save the cards you’re looking for and keep their current simulated value close.</p><Link href="/cards" className="button button-solid">Browse the card index <ArrowRight size={15} /></Link></div> :
         <div className="wish-list-grid">{wishListItems.map((item) => <article className="wish-list-card" key={item.cardId} data-testid={`wish-list-card-${item.cardId}`}>
           <Link href={`/cards/${encodeURIComponent(item.cardId)}`} className="wish-list-card-link"><CardArtwork src={item.card.imageUrl} alt={`${item.card.name} card artwork`} /><span><strong>{item.card.name}</strong><small>{item.card.setName} · {item.card.number}</small></span></Link>
-          <div className="wish-list-price"><span>CURRENT SIMULATED PRICE</span><strong>{money(item.card.marketPrice)}</strong></div>
+          <div className="wish-list-price"><span>CURRENT SIMULATED PRICE</span><strong>{money(item.card.marketPrice)}</strong><WishListTrend history={item.history} cardName={item.card.name} /></div>
           <button className="button button-outline wish-list-remove" onClick={() => removeWishListItem.mutate({ cardId: item.cardId })} disabled={removeWishListItem.isPending} aria-label={`Remove ${item.card.name} from Wish List`} data-testid={`button-remove-wish-list-${item.cardId}`}><X size={14} /> Remove</button>
         </article>)}</div>}
     </section>}

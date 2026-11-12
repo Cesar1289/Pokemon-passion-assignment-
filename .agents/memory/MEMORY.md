@@ -1,0 +1,1 @@
+- [Historical trends and current quotes](price-trend-semantics.md) — keep historical movement separate from current simulated prices and list totals.

@@ -334,7 +334,7 @@ paths:
       summary: List the signed-in user's wished-for cards
       responses:
         "200":
-          description: Personal wish list with current card prices
+          description: Personal wish list with current card prices and simulated 30-day history
           content:
             application/json:
               schema:
@@ -719,7 +719,13 @@ components:
       properties:
         cardId: { type: string }
         card: { $ref: "#/components/schemas/Card" }
-      required: [cardId, card]
+        history:
+          type: array
+          description: Available simulated daily prices within the last 30 UTC calendar days, including today, ordered oldest first. May be empty or incomplete; independent of the current market price.
+          maxItems: 30
+          items:
+            $ref: "#/components/schemas/PricePoint"
+      required: [cardId, card, history]
     BinderEntryInput:
       type: object
       properties:

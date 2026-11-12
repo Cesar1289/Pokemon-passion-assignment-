@@ -334,6 +334,10 @@
 .wish-list-price { display:flex; flex-direction:column; align-items:flex-end; gap:5px; }
 .wish-list-price>span { color:hsl(var(--muted-foreground)); font:500 7px var(--app-font-mono); letter-spacing:.08em; text-align:right; }
 .wish-list-price>strong { color:hsl(var(--foreground)); font:600 13px var(--app-font-mono); white-space:nowrap; }
+.wish-list-price .wish-list-trend { display:inline-flex; align-items:center; gap:3px; color:hsl(var(--muted-foreground)); font:500 8px var(--app-font-mono); letter-spacing:0; line-height:1.5; }
+.wish-list-trend svg { flex:none; }
+.wish-list-price .wish-list-trend-up { color:#4d855c; }
+.wish-list-price .wish-list-trend-down { color:#b35e4f; }
 .wish-list-remove { min-height:32px; justify-self:end; gap:6px; padding:0 9px; font-size:8px; }
 .wish-list-empty { min-height:285px; border-color:hsl(var(--border)); background:hsl(var(--card)); }
 .wish-list-empty h3 { max-width:520px; }
