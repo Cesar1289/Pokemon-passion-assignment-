@@ -656,6 +656,13 @@
 .trade-picked-list .trade-picked { min-height:82px; }
 .trade-picked-list .trade-picked img { width:48px; height:65px; }
 .trade-picked-list .icon-button { flex:none; }
+.trade-picked-list { display:flex; flex-wrap:wrap; align-items:flex-start; gap:7px; }
+.trade-picked-chip { min-width:0; max-width:100%; display:inline-flex; align-items:center; gap:7px; padding:4px 7px 4px 4px; border:1px solid hsl(var(--border)); border-radius:999px; background:hsl(var(--muted)); }
+.trade-picked-chip img { width:28px; height:38px; flex:none; object-fit:contain; border-radius:3px; }
+.trade-picked-chip>span { min-width:0; display:flex; flex-direction:column; gap:2px; }
+.trade-picked-chip strong { max-width:142px; overflow:hidden; color:hsl(var(--foreground)); font:600 9px var(--app-font-serif); text-overflow:ellipsis; white-space:nowrap; }
+.trade-picked-chip small { color:hsl(var(--muted-foreground)); font:500 7px var(--app-font-mono); }
+.trade-picked-chip>.icon-button { width:24px; height:24px; flex:none; }
 .dark .auth-panel { background:hsl(var(--card)); border-color:hsl(var(--border)); }
 .dark .auth-panel>p,.dark .spoiler-cover p { color:hsl(var(--muted-foreground)); }
 .dark .trade-picked { background:hsl(var(--muted)); }

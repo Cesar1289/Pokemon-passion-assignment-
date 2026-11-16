@@ -1,4 +1,4 @@
-import { createContext, type FormEvent, type ReactNode, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, type FormEvent, type ReactNode, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import { Link, Route, Switch, useLocation, useRoute } from 'wouter';
 import {
@@ -518,6 +518,7 @@ function ComparePage({ user }: { user: { username: string } | null }) {
   const cards = cardsQuery.data ?? [];
   const [left, setLeft] = useState<Card[]>([]);
   const [right, setRight] = useState<Card[]>([]);
+  const [openPicker, setOpenPicker] = useState<'your' | 'their' | null>(null);
   const leftValue = left.reduce((sum, card) => sum + card.marketPrice, 0);
   const rightValue = right.reduce((sum, card) => sum + card.marketPrice, 0);
   const spread = Math.abs(leftValue - rightValue);
@@ -528,9 +529,9 @@ function ComparePage({ user }: { user: { username: string } | null }) {
     <div className="page-title-row"><div><div className="eyebrow"><span className="eyebrow-line" />THE TRADE LAB</div><h1>Fair is a feeling.<br /><em>Facts are better.</em></h1><p>Compare simulated market values before the handshake.</p></div><div className="compare-stamp"><Swords size={20} /><span>TRADE<br />CHECK / 01</span></div></div>
     {!user && <div className="inline-banner"><ShieldCheck size={17} /><span>Trading is open to everyone. <Link href="/login">Sign in</Link> to save the cards you collect.</span></div>}
     {cardsQuery.isError ? <QueryError error={cardsQuery.error} retry={() => cardsQuery.refetch()} /> : <div className="trade-board">
-      <TradeSide title="YOUR SIDE" value={left} cards={cards} search={queryText} setSearch={setQueryText} onPick={addCard(setLeft)} onRemove={(id) => setLeft((current) => current.filter((card) => card.id !== id))} onClear={() => setLeft([])} />
+      <TradeSide side="your" title="YOUR SIDE" value={left} cards={cards} search={queryText} setSearch={setQueryText} open={openPicker === 'your'} onToggle={() => setOpenPicker((current) => current === 'your' ? null : 'your')} onClose={() => setOpenPicker(null)} onPick={addCard(setLeft)} onRemove={(id) => setLeft((current) => current.filter((card) => card.id !== id))} onClear={() => setLeft([])} />
       <div className="trade-middle"><div className="versus">VS</div><div className="balance-line" /><span>VALUE<br />CHECK</span></div>
-      <TradeSide title="THEIR SIDE" value={right} cards={cards} search={queryText} setSearch={setQueryText} onPick={addCard(setRight)} onRemove={(id) => setRight((current) => current.filter((card) => card.id !== id))} onClear={() => setRight([])} />
+      <TradeSide side="their" title="THEIR SIDE" value={right} cards={cards} search={queryText} setSearch={setQueryText} open={openPicker === 'their'} onToggle={() => setOpenPicker((current) => current === 'their' ? null : 'their')} onClose={() => setOpenPicker(null)} onPick={addCard(setRight)} onRemove={(id) => setRight((current) => current.filter((card) => card.id !== id))} onClear={() => setRight([])} />
     </div>}
     {left.length > 0 && right.length > 0 && <div className={`fairness-result ${delta > 25 ? 'fairness-caution' : ''}`}><div className="fairness-icon">{delta <= 10 ? <BadgeCheck size={22} /> : <Activity size={22} />}</div><div className="fairness-copy"><span className="section-kicker">{delta <= 10 ? 'FAIR TRADE' : delta <= 25 ? 'ONE-SIDED' : 'BAD TRADE'}</span><h2>{delta <= 10 ? 'Looks balanced.' : `A ${money(spread)} difference.`}</h2><p>{delta <= 10 ? 'The total simulated values are within 10%, so this looks fair by the estimate.' : `${leftValue > rightValue ? 'Your side' : 'Their side'} leads by ${pct(delta)} of the higher-value side. ${delta <= 25 ? 'This trade is one-sided by the estimate.' : 'This is a significant value gap; consider adjusting before trading.'}`}</p></div><div className="fairness-total"><span>VALUE DELTA</span><strong>{money(spread)}</strong><small>{pct(delta)} of higher side</small></div></div>}
     <div className="trade-disclaimer"><Clock3 size={14} /> Values are estimates from a simulated market trace, not a price guarantee or grading opinion.</div>
@@ -538,11 +539,50 @@ function ComparePage({ user }: { user: { username: string } | null }) {
   </div>;
 }
 
-function TradeSide({ title, value, cards, search, setSearch, onPick, onRemove, onClear }: { title: string; value: Card[]; cards: Card[]; search: string; setSearch: (text: string) => void; onPick: (card: Card) => void; onRemove: (id: string) => void; onClear: () => void }) {
-  const [expanded, setExpanded] = useState(false);
+function TradeSide({ side, title, value, cards, search, setSearch, open, onToggle, onClose, onPick, onRemove, onClear }: {
+  side: 'your' | 'their';
+  title: string;
+  value: Card[];
+  cards: Card[];
+  search: string;
+  setSearch: (text: string) => void;
+  open: boolean;
+  onToggle: () => void;
+  onClose: () => void;
+  onPick: (card: Card) => void;
+  onRemove: (id: string) => void;
+  onClear: () => void;
+}) {
+  const pickerAreaRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const closeOnOutsidePointer = (event: PointerEvent) => {
+      if (pickerAreaRef.current && !pickerAreaRef.current.contains(event.target as Node)) onClose();
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        onClose();
+      }
+    };
+    document.addEventListener('pointerdown', closeOnOutsidePointer);
+    document.addEventListener('keydown', closeOnEscape);
+    return () => {
+      document.removeEventListener('pointerdown', closeOnOutsidePointer);
+      document.removeEventListener('keydown', closeOnEscape);
+    };
+  }, [open, onClose]);
+  const pickCard = (card: Card) => {
+    onPick(card);
+    onClose();
+  };
+  const panelId = `trade-picker-${side}`;
   return <section className="trade-side"><div className="trade-side-head"><span className="section-kicker">{title}</span>{value.length > 0 && <button className="text-action" onClick={onClear}><X size={14} /> Clear</button>}</div>
-    {value.length > 0 && <div className="trade-picked-list">{value.map((card) => <div className="trade-picked" key={card.id}><CardArtwork src={card.imageUrl} alt="" /><div><strong>{card.name}</strong><small>{card.setName} · {card.number}</small><span className="trade-value">{money(card.marketPrice)}</span></div><button className="icon-button" aria-label={`Remove ${card.name} from trade`} onClick={() => onRemove(card.id)}><X size={15} /></button></div>)}</div>}
-    <button className="trade-picker" onClick={() => setExpanded(!expanded)}><span className="picker-plus"><Plus size={20} /></span><span><strong>{value.length ? 'Add another card' : 'Choose cards'}</strong><small>Search the catalog to add cards to this side</small></span><ChevronDown size={16} className={expanded ? 'rotate-chevron' : ''} /></button>{expanded && <div className="trade-picker-panel"><label className="search-control"><Search size={15} /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Find a card…" aria-label={`Search card for ${title}`} /></label><div className="picker-results">{cards.filter((card) => !value.some((item) => item.id === card.id)).slice(0, 8).map((card) => <button key={card.id} onClick={() => onPick(card)}><CardArtwork src={card.imageUrl} alt="" /><span><strong>{card.name}</strong><small>{card.setName}</small></span><b>{money(card.marketPrice)}</b></button>)}{!cards.length && <p className="picker-empty">No matching cards. Try a different search.</p>}</div></div>}
+    {value.length > 0 && <div className="trade-picked-list">{value.map((card) => <div className="trade-picked-chip" key={card.id} data-testid={`trade-picked-${side}-${card.id}`}><CardArtwork src={card.imageUrl} alt="" /><span><strong>{card.name}</strong><small>{money(card.marketPrice)}</small></span><button className="icon-button" aria-label={`Remove ${card.name} from trade`} data-testid={`button-remove-trade-${side}-${card.id}`} onClick={() => onRemove(card.id)}><X size={14} /></button></div>)}</div>}
+    <div className="trade-picker-area" ref={pickerAreaRef}>
+      <button className="trade-picker" aria-expanded={open} aria-controls={panelId} data-testid={`button-open-trade-picker-${side}`} onClick={onToggle}><span className="picker-plus"><Plus size={20} /></span><span><strong>{value.length ? 'Add another card' : 'Choose cards'}</strong><small>Search the catalog to add cards to this side</small></span><ChevronDown size={16} className={open ? 'rotate-chevron' : ''} /></button>
+      {open && <div className="trade-picker-panel" id={panelId} data-testid={`trade-picker-panel-${side}`}><label className="search-control"><Search size={15} /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Find a card…" aria-label={`Search card for ${title}`} /></label><div className="picker-results">{cards.filter((card) => !value.some((item) => item.id === card.id)).slice(0, 8).map((card) => <button key={card.id} onClick={() => pickCard(card)}><CardArtwork src={card.imageUrl} alt="" /><span><strong>{card.name}</strong><small>{card.setName}</small></span><b>{money(card.marketPrice)}</b></button>)}{!cards.length && <p className="picker-empty">No matching cards. Try a different search.</p>}</div></div>}
+    </div>
     <div className="trade-side-footer"><span>SIMULATED MARKET VALUE</span><strong>{money(value.reduce((sum, card) => sum + card.marketPrice, 0))}</strong></div>
   </section>;
 }
