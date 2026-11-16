@@ -29,6 +29,7 @@ import {
 import NotFound from '@/pages/not-found';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { WishListTrend } from '@/components/wish-list-trend';
+import { CardScannerEntry } from '@/components/card-scanner';
 import { sortWishListItems, type WishListSortOrder } from '@/lib/wish-list-trend';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -331,6 +332,7 @@ function HomePage({ user }: { user: { username: string } | null }) {
         <p>Know the print. Read the market. Make your next move with confidence.</p>
         <div className="hero-search"><Search size={18} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search a Pokémon, set, or card number…" aria-label="Search cards" data-testid="input-home-search" /><kbd>↵</kbd></div>
         <div className="hero-shortcuts"><span><Command size={12} /> Start with</span>{['Charizard', 'Pikachu', '151'].map((term) => <button key={term} onClick={() => setSearch(term)}>{term}</button>)}</div>
+        <CardScannerEntry />
       </div>
       <div className="hero-orbit"><div className="orbit orbit-one" /><div className="orbit orbit-two" /><div className="orbit-core"><Mark /><span>FIELD<br />NOTES</span></div><div className="orbit-label orbit-label-one">ARCHIVE <b>001—∞</b></div><div className="orbit-label orbit-label-two">TCG / EST. 1996</div><div className="orbit-dot" /></div>
       <div className="hero-index">PV / 01</div>
@@ -452,7 +454,7 @@ function CardsPage({ user }: { user: { username: string } | null }) {
   };
   const currentType = typeFilter.length === 1 ? typeFilter[0] : '';
   return <section className="catalog-page">
-    <div className="page-title-row"><div><div className="eyebrow"><span className="eyebrow-line" />THE ARCHIVE</div><h1>Card index<span className="title-period">.</span></h1><p>Search the collection. Get to know every print.</p></div><div className="index-stamp"><Layers3 size={17} /> INDEX<br /><b>001 / ∞</b></div></div>
+    <div className="page-title-row"><div><div className="eyebrow"><span className="eyebrow-line" />THE ARCHIVE</div><h1>Card index<span className="title-period">.</span></h1><p>Search the collection. Get to know every print.</p></div><div className="catalog-title-actions"><div className="index-stamp"><Layers3 size={17} /> INDEX<br /><b>001 / ∞</b></div><CardScannerEntry compact /></div></div>
     <div className="catalog-tabs" role="tablist" aria-label="Card index categories">
       <button role="tab" aria-selected={catalogView === 'sealed'} className={catalogView === 'sealed' ? 'catalog-tab catalog-tab-active' : 'catalog-tab'} onClick={() => setCatalogView('sealed')} data-testid="tab-catalog-sealed">Sealed</button>
       <button role="tab" aria-selected={catalogView === 'cards' && !currentType} className={catalogView === 'cards' && !currentType ? 'catalog-tab catalog-tab-active' : 'catalog-tab'} onClick={() => { setCatalogView('cards'); setTypeFilter([]); }} data-testid="tab-catalog-all-cards">All</button>
