@@ -62,6 +62,7 @@ A Pokémon TCG web app for collectors, traders, and competitive players. Version
 - **Update** condition, quantity, and notes anytime
 - **Delete** cards from the binder
 - **Export CSV** downloads the whole binder as a spreadsheet
+- **Wish List tab** inside the Binder: wished-for cards and sealed products with current simulated price, remove button, and total wish-list value; own database table, owner-only
 
 ### View 6 — Community Binders (bonus view)
 - Browse a list of users who turned their binder public: avatar, username, number of cards
@@ -115,6 +116,7 @@ A Pokémon TCG web app for collectors, traders, and competitive players. Version
 
 - **Type tab bar** in the Directory (quick browsing by Pokémon type)
 - **Community Binders** with opt-in public sharing and a hide-portfolio-total option
+- **Wish List** (built Nov 2026): tab inside the Binder, add from Card Detail or Directory tiles, wish-list value total
 
 ## 9. Responsive Design
 
