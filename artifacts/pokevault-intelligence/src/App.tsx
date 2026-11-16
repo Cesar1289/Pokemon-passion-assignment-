@@ -36,11 +36,21 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: 1, staleTime: 20_000 } } });
 const cookieRequest = { credentials: 'include' as const };
 const THEME_STORAGE_KEY = 'pokevault-theme-v2';
+const WISH_LIST_SORT_STORAGE_KEY = 'pokevault-wish-list-sort-v1';
+const wishListSortOrders: readonly WishListSortOrder[] = ['trend_drop', 'trend_gain', 'price_high', 'price_low'];
 const conditions = Object.values(BinderEntryInputCondition);
 const ThemeContext = createContext<{ dark: boolean; toggle: () => void }>({ dark: false, toggle: () => undefined });
 const money = (value?: number) => typeof value === 'number' ? value.toLocaleString('en-US', { style: 'currency', currency: 'USD' }) : '—';
 const pct = (value: number) => `${value > 0 ? '+' : ''}${value.toFixed(1)}%`;
 const failureMessage = (error: unknown) => error instanceof Error ? error.message : 'Something went wrong. Please try again.';
+function getSavedWishListSort(): WishListSortOrder {
+  try {
+    const saved = window.localStorage.getItem(WISH_LIST_SORT_STORAGE_KEY);
+    return wishListSortOrders.includes(saved as WishListSortOrder) ? saved as WishListSortOrder : 'trend_drop';
+  } catch {
+    return 'trend_drop';
+  }
+}
 
 function Mark({ small = false }: { small?: boolean }) {
   return <span className={`brand-mark ${small ? 'brand-mark-small' : ''}`} aria-hidden="true"><span /><i /><b /></span>;
@@ -530,7 +540,14 @@ function Modal({ title, children, onClose }: { title: string; children: ReactNod
 
 function BinderPage({ user }: { user: { username: string } | null }) {
   const [activeTab, setActiveTab] = useState<'collection' | 'wish-list'>('collection');
-  const [wishListSort, setWishListSort] = useState<WishListSortOrder>('trend_drop');
+  const [wishListSort, setWishListSort] = useState<WishListSortOrder>(getSavedWishListSort);
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(WISH_LIST_SORT_STORAGE_KEY, wishListSort);
+    } catch {
+      toast.error('Your Wish List order could not be saved in this browser.');
+    }
+  }, [wishListSort]);
   const query = useListBinderEntries({ query: { enabled: !!user, queryKey: getListBinderEntriesQueryKey() }, request: cookieRequest });
   const settingsQuery = useGetBinderSettings({ query: { enabled: !!user, queryKey: getGetBinderSettingsQueryKey() }, request: cookieRequest });
   const wishListQuery = useListWishList({
