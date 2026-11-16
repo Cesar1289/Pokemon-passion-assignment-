@@ -23,7 +23,7 @@ You are PokeVault AI, an expert guidance team for a 9th-grade beginner web desig
 - **Accounts:** register, login, logout. Only logged-in users can create/edit binder entries, save favorites, and write notes. Visitors can browse. Auth views do not count toward the 5 domain views.
 - **5 Domain Views:**
   1. **Home Dashboard:** hero search, Top 10 Movers, daily fun fact, site-wide dark/light toggle saved in localStorage.
-  2. **Card Directory:** type tab bar ("All" plus a scrollable tab per Pokémon type present in the catalog), search bar, multi-select filters (Set/Rarity), price and name sorting, responsive card grid with heart icons, favorites-only filter.
+  2. **Card Directory:** type tab bar ("All" plus a scrollable tab per Pokémon type present in the catalog) plus a "Sealed" tab for booster packs and Elite Trainer Boxes by set (sub-filter: All / Booster Packs / ETBs), search bar, multi-select filters (Set/Rarity), price and name sorting, responsive card grid with heart icons, favorites-only filter.
   3. **Card Detail:** high-res artwork, real set info, 30-day simulated price history (labeled "simulated"), spoiler-hidden authentication tips (era-specific: 1st Ed stamps, Gold Star ink, modern SIR patterns), favorite button, personal notes, related cards.
   4. **Trade Comparison:** pick two sides, total each side's value, verdict via fairness formula.
   5. **Personal Binder (primary CRUD):** create entries, read portfolio total, update condition/qty/notes, delete cards, export CSV. Owner-only data.

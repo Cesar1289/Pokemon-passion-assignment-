@@ -93,6 +93,25 @@ function priceHistory(base, days = 30) {
 
 The Top 10 Movers list on Home can then rank cards by `abs(last - first) / first` (biggest % change over 30 days).
 
+## 6. Sealed Products (booster packs & ETBs)
+
+Shown under the "Sealed" tab in the Card Index. Same simulated-price rules; the `priceHistory()` generator works for these too.
+
+| # | Product | Set | Type | Base Price (simulated) |
+|---|---|---|---|---|
+| S1 | Booster Pack | Scarlet & Violet 151 | Booster Pack | $6.50 |
+| S2 | Elite Trainer Box | Scarlet & Violet 151 | ETB | $65 |
+| S3 | Booster Pack | Evolving Skies | Booster Pack | $14 |
+| S4 | Elite Trainer Box | Evolving Skies | ETB | $95 |
+| S5 | Booster Pack | Obsidian Flames | Booster Pack | $5 |
+| S6 | Elite Trainer Box | Obsidian Flames | ETB | $45 |
+| S7 | Booster Pack | Paldean Fates | Booster Pack | $6 |
+| S8 | Elite Trainer Box | Paldean Fates | ETB | $55 |
+| S9 | Booster Pack | Crown Zenith | Booster Pack | $9 |
+| S10 | Elite Trainer Box | Crown Zenith | ETB | $70 |
+| S11 | Booster Pack (1st Ed) | Base Set, 1999 | Booster Pack | $450 |
+| S12 | Booster Pack (1st Ed) | Neo Genesis, 2000 | Booster Pack | $550 |
+
 ## 5. Daily Fun Facts (rotate one per day)
 
 1. The Pokémon TCG launched in Japan in October 1996.

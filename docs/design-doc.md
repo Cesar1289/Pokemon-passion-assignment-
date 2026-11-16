@@ -37,6 +37,7 @@ A Pokémon TCG web app for collectors, traders, and competitive players. Version
 
 ### View 2 — Card Directory & Catalog
 - **Type tab bar:** "All" plus one tab per Pokémon type in the catalog (Grass, Fire, Water, Lightning, Psychic, Darkness, Dragon, Colorless, ...), horizontally scrollable so it never overflows; the tabs are generated from the data, so only types that exist show up
+- **Sealed tab:** a "Sealed" tab at the start of the tab bar showing booster packs and Elite Trainer Boxes by set, with simulated prices, 30-day history, and set release years; sub-filter chips for "All / Booster Packs / ETBs"
 - Search bar plus filters by **Set and Rarity** (multi-select: several filters at once)
 - Sort by name or by price (low-to-high / high-to-low)
 - Responsive grid of cards with a heart icon on each card (favorites)
@@ -77,7 +78,7 @@ A Pokémon TCG web app for collectors, traders, and competitive players. Version
 
 ## 6. Database & Persistence
 
-- PostgreSQL tables: `users` (with `is_public` binder-sharing flag and `hide_value` flag), `cards` (seed catalog), `binder_entries`, `favorites`, `notes`, `price_history`.
+- PostgreSQL tables: `users` (with `is_public` binder-sharing flag and `hide_value` flag), `cards` (seed catalog), `sealed_products` (booster packs and ETBs with simulated prices and 30-day history), `binder_entries`, `favorites`, `notes`, `price_history`.
 - All user-created/updated/deleted data (binder entries, favorites, notes) persists across sessions and page refreshes.
 - Binder entries are tied to their owner's user id — nobody can edit someone else's binder.
 
