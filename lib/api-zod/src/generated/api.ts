@@ -327,12 +327,15 @@ export const CreateBinderEntryResponse = zod.object({
 /**
  * @summary List the signed-in user's wished-for cards
  */
+export const listWishListResponseTargetPriceMin = 0;
+
 export const listWishListResponseHistoryMax = 30;
 
 
 
 export const ListWishListResponseItem = zod.object({
   "cardId": zod.string(),
+  "targetPrice": zod.number().min(listWishListResponseTargetPriceMin).nullable(),
   "card": zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -369,12 +372,15 @@ export const AddWishListItemParams = zod.object({
   "cardId": zod.coerce.string().min(1)
 })
 
+export const addWishListItemResponseTargetPriceMin = 0;
+
 export const addWishListItemResponseHistoryMax = 30;
 
 
 
 export const AddWishListItemResponse = zod.object({
   "cardId": zod.string(),
+  "targetPrice": zod.number().min(addWishListItemResponseTargetPriceMin).nullable(),
   "card": zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -411,6 +417,58 @@ export const RemoveWishListItemParams = zod.object({
 })
 
 export const RemoveWishListItemResponse = zod.void()
+
+
+/**
+ * @summary Set or clear the signed-in user's target price for a wished-for card
+ */
+
+
+
+export const UpdateWishListTargetParams = zod.object({
+  "cardId": zod.coerce.string().min(1)
+})
+
+export const updateWishListTargetBodyTargetPriceMin = 0;
+
+
+
+export const UpdateWishListTargetBody = zod.object({
+  "targetPrice": zod.number().min(updateWishListTargetBodyTargetPriceMin).nullable()
+})
+
+export const updateWishListTargetResponseTargetPriceMin = 0;
+
+export const updateWishListTargetResponseHistoryMax = 30;
+
+
+
+export const UpdateWishListTargetResponse = zod.object({
+  "cardId": zod.string(),
+  "targetPrice": zod.number().min(updateWishListTargetResponseTargetPriceMin).nullable(),
+  "card": zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "setName": zod.string(),
+  "setId": zod.string(),
+  "number": zod.string(),
+  "rarity": zod.string(),
+  "type": zod.string(),
+  "year": zod.number().int(),
+  "artist": zod.string(),
+  "imageUrl": zod.string(),
+  "marketPrice": zod.number(),
+  "trendPercent": zod.number(),
+  "authenticationTip": zod.string(),
+  "tags": zod.array(zod.string()),
+  "isFavorite": zod.boolean(),
+  "isWishListed": zod.boolean().optional()
+}),
+  "history": zod.array(zod.object({
+  "day": zod.string(),
+  "value": zod.number()
+})).max(updateWishListTargetResponseHistoryMax).describe('Available simulated daily prices within the last 30 UTC calendar days, including today, ordered oldest first. May be empty or incomplete; independent of the current market price.')
+})
 
 
 /**

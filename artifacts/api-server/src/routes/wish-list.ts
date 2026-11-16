@@ -5,6 +5,9 @@ import {
   AddWishListItemResponse,
   ListWishListResponse,
   RemoveWishListItemParams,
+  UpdateWishListTargetBody,
+  UpdateWishListTargetParams,
+  UpdateWishListTargetResponse,
 } from "@workspace/api-zod";
 import { db, cardsTable, favoritesTable, priceHistoryTable, wishListTable } from "@workspace/db";
 import { requireUser } from "../lib/auth";
@@ -50,6 +53,7 @@ async function getWishList(userId: number): Promise<Array<Record<string, unknown
   }
   return rows.map(({ item, card }) => ({
     cardId: item.cardId,
+    targetPrice: item.targetPrice,
     history: histories.get(item.cardId) ?? [],
     card: {
       ...card,
@@ -109,6 +113,37 @@ router.delete("/wish-list/:cardId", async (req, res): Promise<void> => {
       ),
     );
   res.sendStatus(204);
+});
+
+router.patch("/wish-list/:cardId", async (req, res): Promise<void> => {
+  const user = await requireUser(req, res);
+  if (!user) return;
+  const params = UpdateWishListTargetParams.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).json({ error: "Invalid card ID." });
+    return;
+  }
+  const body = UpdateWishListTargetBody.safeParse(req.body);
+  if (!body.success) {
+    res.status(400).json({ error: "Target price must be a nonnegative amount or null." });
+    return;
+  }
+
+  const [updated] = await db
+    .update(wishListTable)
+    .set({ targetPrice: body.data.targetPrice })
+    .where(and(
+      eq(wishListTable.userId, user.id),
+      eq(wishListTable.cardId, params.data.cardId),
+    ))
+    .returning({ cardId: wishListTable.cardId });
+  if (!updated) {
+    res.status(404).json({ error: "That card is not on your Wish List." });
+    return;
+  }
+
+  const entry = (await getWishList(user.id)).find((item) => item.cardId === updated.cardId);
+  res.json(UpdateWishListTargetResponse.parse(entry));
 });
 
 export default router;

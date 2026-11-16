@@ -401,6 +401,41 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+    patch:
+      operationId: updateWishListTarget
+      tags: [wish-list]
+      summary: Set or clear the signed-in user's target price for a wished-for card
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WishListTargetUpdate"
+      responses:
+        "200":
+          description: Updated personal wish list entry
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WishListEntry"
+        "400":
+          description: Invalid target price
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Sign-in required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Card is not on the signed-in user's wish list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
   /binder/settings:
     get:
       operationId: getBinderSettings
@@ -718,6 +753,7 @@ components:
       type: object
       properties:
         cardId: { type: string }
+        targetPrice: { type: ["number", "null"], minimum: 0 }
         card: { $ref: "#/components/schemas/Card" }
         history:
           type: array
@@ -725,7 +761,12 @@ components:
           maxItems: 30
           items:
             $ref: "#/components/schemas/PricePoint"
-      required: [cardId, card, history]
+      required: [cardId, targetPrice, card, history]
+    WishListTargetUpdate:
+      type: object
+      properties:
+        targetPrice: { type: ["number", "null"], minimum: 0 }
+      required: [targetPrice]
     BinderEntryInput:
       type: object
       properties:

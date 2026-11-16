@@ -18,6 +18,7 @@ import {
   useListBinderEntries, useListCards, useListPublicBinders, useListWishList, useLogin, useLogout, useRegister,
   useRemoveFavorite, useSaveCardNote, useUpdateBinderEntry, useHealthCheck,
   useRemoveWishListItem,
+  useUpdateWishListTarget,
   useUpdateBinderSettings,
 } from '@workspace/api-client-react';
 import NotFound from '@/pages/not-found';
@@ -108,6 +109,49 @@ function WishListMark({ added = false }: { added?: boolean }) {
     <Heart size={15} fill={added ? 'currentColor' : 'none'} />
     {!added && <Plus size={8} />}
   </span>;
+}
+
+function WishListTargetControl({ cardId, cardName, targetPrice, marketPrice, isPending, onSave }: {
+  cardId: string;
+  cardName: string;
+  targetPrice: number | null;
+  marketPrice: number;
+  isPending: boolean;
+  onSave: (targetPrice: number | null) => void;
+}) {
+  const [value, setValue] = useState(targetPrice === null ? '' : String(targetPrice));
+  useEffect(() => {
+    setValue(targetPrice === null ? '' : String(targetPrice));
+  }, [targetPrice]);
+  const targetReached = targetPrice !== null && marketPrice <= targetPrice;
+
+  return <form className="wish-list-target" onSubmit={(event) => {
+    event.preventDefault();
+    const trimmedValue = value.trim();
+    onSave(trimmedValue === '' ? null : Number(trimmedValue));
+  }}>
+    <label htmlFor={`wish-list-target-${cardId}`}>TARGET PRICE</label>
+    <div className="wish-list-target-entry">
+      <span aria-hidden="true">$</span>
+      <input
+        id={`wish-list-target-${cardId}`}
+        type="number"
+        min="0"
+        step="0.01"
+        inputMode="decimal"
+        value={value}
+        onChange={(event) => setValue(event.target.value)}
+        placeholder="Set a target"
+        aria-label={`Target price for ${cardName}`}
+        data-testid={`input-wish-list-target-${cardId}`}
+      />
+      <button type="submit" disabled={isPending} data-testid={`button-save-wish-list-target-${cardId}`}>
+        {isPending ? 'Saving…' : 'Save'}
+      </button>
+    </div>
+    {targetReached && <span className="wish-list-target-reached" role="status"><Check size={12} /> TARGET REACHED</span>}
+    <span className="wish-list-target-note">{targetPrice === null ? 'No target saved yet' : `Saved: ${money(targetPrice)} · leave blank to clear`}</span>
+  </form>;
 }
 
 function CardArtwork({ src, alt, className, loading = 'lazy' }: {
@@ -422,6 +466,16 @@ function BinderPage({ user }: { user: { username: string } | null }) {
       onError: (error) => toast.error(failureMessage(error)),
     },
   });
+  const updateWishListTarget = useUpdateWishListTarget({
+    request: cookieRequest,
+    mutation: {
+      onSuccess: () => {
+        cache.invalidateQueries({ queryKey: getListWishListQueryKey() });
+        toast.success('Wish List target saved.');
+      },
+      onError: (error) => toast.error(failureMessage(error)),
+    },
+  });
   if (!user) return <div className="binder-gate"><div className="gate-mark"><BookOpen size={25} /></div><span className="section-kicker">YOUR PRIVATE COLLECTION</span><h1>A place for<br /><em>the keepers.</em></h1><p>Sign in to catalog your cards, track your collection’s simulated value, and keep the details close.</p><Link href="/login" className="button button-warm">Sign in to your vault <ArrowRight size={16} /></Link><span className="gate-foot">Your binder is private to your account.</span></div>;
   if (query.isLoading) return <div className="page-loading"><div className="skeleton skeleton-line" /><div className="skeleton skeleton-line short" /><SkeletonGrid /></div>;
   if (query.isError) return <QueryError error={query.error} retry={() => query.refetch()} />;
@@ -448,15 +502,16 @@ function BinderPage({ user }: { user: { username: string } | null }) {
       {!entries.length ? <div className="empty-state binder-empty"><div className="empty-icon"><BookOpen /></div><span className="section-kicker">FIRST PAGE, BLANK</span><h3>Your collection starts with one.</h3><p>Find a card you love and add it here. We’ll keep its value and condition in view.</p><Link href="/cards" className="button button-solid">Browse the card index <ArrowRight size={15} /></Link></div> :
         <div className="binder-list"><div className="binder-list-heading"><span>CARD / SET</span><span>CONDITION</span><span>QTY.</span><span>EST. VALUE</span><span>TOOLS</span></div>{entries.map((entry) => <article className="binder-row" key={entry.id} data-testid={`binder-entry-${entry.id}`}><Link href={`/cards/${encodeURIComponent(entry.cardId)}`} className="binder-card"><CardArtwork src={entry.card.imageUrl} alt="" /><span><strong>{entry.card.name}</strong><small>{entry.card.setName} · {entry.card.number}</small></span></Link><span className="condition-pill">{entry.condition}</span><span className="binder-qty">{entry.quantity}</span><strong className="binder-value">{money(entry.totalValue)}</strong><div className="row-actions"><button className="icon-button" onClick={() => editEntry(entry)} aria-label={`Edit ${entry.card.name}`} data-testid={`button-edit-entry-${entry.id}`}><SlidersHorizontal size={15} /></button><button className="icon-button danger-icon" onClick={() => setRemoving(entry)} aria-label={`Remove ${entry.card.name}`} data-testid={`button-remove-entry-${entry.id}`}><X size={16} /></button></div>{entry.notes && <p className="binder-note"><Bookmark size={12} /> {entry.notes}</p>}</article>)}</div>}
     </div> : <section id="panel-wish-list" role="tabpanel" aria-labelledby="tab-wish-list" className="wish-list-view">
-      <div className="wish-list-summary"><div><span className="stat-label">WISH LIST VALUE</span><strong data-testid="text-wish-list-value">{wishListQuery.isLoading ? '…' : money(wishListValue)}</strong><small>{wishListItems.length} {wishListItems.length === 1 ? 'card' : 'cards'} on the hunt</small></div><div className="wish-list-summary-note"><Heart size={20} /><p>Keep an eye on the cards you hope to find. Values use the current simulated market price.</p></div></div>
+      <div className="wish-list-summary"><div><span className="stat-label">WISH LIST VALUE</span><strong data-testid="text-wish-list-value">{wishListQuery.isLoading ? '…' : money(wishListValue)}</strong><small>{wishListItems.length} {wishListItems.length === 1 ? 'card' : 'cards'} on the hunt</small></div><div className="wish-list-summary-note"><Heart size={20} /><p>Keep an eye on the cards you hope to find. Target comparisons use current simulated prices, not live market quotes.</p></div></div>
        {!wishListQuery.isLoading && !wishListQuery.isError && wishListItems.length > 0 && <div className="wish-list-toolbar">
          <label className="select-control"><SlidersHorizontal size={15} /><span>Sort Wish List</span><select value={wishListSort} onChange={(event) => setWishListSort(event.target.value as typeof wishListSort)} aria-label="Sort Wish List" data-testid="select-wish-list-sort"><option value="trend_drop">Biggest 30-day drops</option><option value="trend_gain">Biggest 30-day gains</option><option value="price_high">Highest current price</option><option value="price_low">Lowest current price</option></select><ChevronDown size={14} /></label>
          <span className="wish-list-sort-status" aria-live="polite">ORDER: {wishListSortLabels[wishListSort].toUpperCase()}</span>
        </div>}
       {wishListQuery.isLoading ? <div className="wish-list-skeleton" aria-label="Loading Wish List"><div className="skeleton skeleton-art" /><div className="skeleton skeleton-line" /></div> : wishListQuery.isError ? <QueryError error={wishListQuery.error} retry={() => wishListQuery.refetch()} /> : !wishListItems.length ? <div className="empty-state wish-list-empty" data-testid="status-wish-list-empty"><div className="empty-icon"><Heart /></div><span className="section-kicker">THE NEXT CHASE</span><h3>Your wish list is empty — hunt some cards!</h3><p>Save the cards you’re looking for and keep their current simulated value close.</p><Link href="/cards" className="button button-solid">Browse the card index <ArrowRight size={15} /></Link></div> :
-         <div className="wish-list-grid">{sortedWishListItems.map((item) => <article className="wish-list-card" key={item.cardId} data-testid={`wish-list-card-${item.cardId}`}>
+        <div className="wish-list-grid">{sortedWishListItems.map((item) => <article className="wish-list-card" key={item.cardId} data-testid={`wish-list-card-${item.cardId}`}>
           <Link href={`/cards/${encodeURIComponent(item.cardId)}`} className="wish-list-card-link"><CardArtwork src={item.card.imageUrl} alt={`${item.card.name} card artwork`} /><span><strong>{item.card.name}</strong><small>{item.card.setName} · {item.card.number}</small></span></Link>
           <div className="wish-list-price"><span>CURRENT SIMULATED PRICE</span><strong>{money(item.card.marketPrice)}</strong><WishListTrend history={item.history} cardName={item.card.name} /></div>
+          <WishListTargetControl cardId={item.cardId} cardName={item.card.name} targetPrice={item.targetPrice} marketPrice={item.card.marketPrice} isPending={updateWishListTarget.isPending} onSave={(targetPrice) => updateWishListTarget.mutate({ cardId: item.cardId, data: { targetPrice } })} />
           <button className="button button-outline wish-list-remove" onClick={() => removeWishListItem.mutate({ cardId: item.cardId })} disabled={removeWishListItem.isPending} aria-label={`Remove ${item.card.name} from Wish List`} data-testid={`button-remove-wish-list-${item.cardId}`}><X size={14} /> Remove</button>
         </article>)}</div>}
     </section>}
