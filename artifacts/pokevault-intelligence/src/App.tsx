@@ -9,9 +9,10 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
-  BinderEntry, BinderEntryInputCondition, Card, CommunityBinder, PublicBinderSummary, getGetBinderSettingsQueryKey,
+  BinderEntry, BinderEntryInputCondition, Card, CommunityBinder, PublicBinderSummary, SealedBinderEntry, SealedProduct, SealedWishListEntry, getGetBinderSettingsQueryKey,
   getGetCardNoteQueryKey, getGetCardQueryKey, getGetCommunityBinderQueryKey, getGetDashboardQueryKey, getGetSessionQueryKey, getHealthCheckQueryKey, getListBinderEntriesQueryKey,
   getListWishListQueryKey,
+  getListSealedBinderEntriesQueryKey, getListSealedProductsQueryKey, getListSealedWishListQueryKey,
   getListPublicBindersQueryKey,
   getListCardsQueryKey, ListCardsParams, useAddFavorite, useAddWishListItem, useCreateBinderEntry,
   useDeleteBinderEntry, useGetBinderSettings, useGetCard, useGetCardNote, useGetCommunityBinder, useGetDashboard, useGetSession,
@@ -20,6 +21,10 @@ import {
   useRemoveWishListItem,
   useUpdateWishListTarget,
   useUpdateBinderSettings,
+  useAddSealedBinderEntry, useAddSealedWishListItem, useListSealedBinderEntries,
+  useListSealedProducts, useListSealedWishList, useRemoveSealedBinderEntry,
+  useRemoveSealedWishListItem, useUpdateSealedBinderEntry, useUpdateSealedWishListTarget,
+  type ListSealedProductsParams,
 } from '@workspace/api-client-react';
 import NotFound from '@/pages/not-found';
 import { ErrorBoundary } from '@/components/error-boundary';
@@ -200,6 +205,53 @@ function CatalogGrid({ cards, user, onFavorite, onWishList }: {
   return <div className="card-grid">{cards.map((card) => <CardTile key={card.id} card={card} user={user} onFavorite={onFavorite} onWishList={onWishList} />)}</div>;
 }
 
+function SealedProductTile({ product, user, onAddToBinder, onAddToWishList }: {
+  product: SealedProduct;
+  user: { username: string } | null;
+  onAddToBinder: (product: SealedProduct) => void;
+  onAddToWishList: (product: SealedProduct) => void;
+}) {
+  const setLabel = product.setName.includes(String(product.setReleaseYear))
+    ? product.setName
+    : `${product.setName} · ${product.setReleaseYear}`;
+  return <article className="sealed-tile" data-testid={`sealed-catalog-${product.id}`}>
+    <div className="sealed-tile-art">
+      <span className="sealed-type-badge">{product.productType === 'ETB' ? 'ELITE TRAINER BOX' : 'BOOSTER PACK'}</span>
+      <Layers3 size={34} strokeWidth={1.2} />
+      <span className="sealed-art-label">SEALED / {product.id}</span>
+    </div>
+    <div className="sealed-tile-copy">
+      <span className="sealed-set-name">{setLabel}</span>
+      <strong className="sealed-product-name">{product.name}</strong>
+      <div className="sealed-price-row">
+        <strong>{money(product.basePrice)}</strong>
+        <span className={product.trendPercent >= 0 ? 'trend-positive' : 'trend-negative'}>
+          {product.trendPercent >= 0 ? <ArrowUpRight size={13} /> : <ArrowDownRight size={13} />}
+          {pct(product.trendPercent)}
+        </span>
+      </div>
+      <div className="sealed-tile-actions">
+        <button className="button button-outline sealed-binder-action" onClick={() => onAddToBinder(product)} aria-label={`Add ${product.name} from ${product.setName} to binder`} data-testid={`button-add-sealed-binder-${product.id}`}>
+          <Plus size={14} /> {product.binderQuantity ? `In binder · ${product.binderQuantity}` : 'Add to binder'}
+        </button>
+        <button className={`wish-list-button sealed-wish-action ${product.isWishListed ? 'is-wish-listed' : ''}`} title={product.isWishListed ? 'Already on your Wish List' : user ? 'Add to Wish List' : 'Sign in to add to your Wish List'} aria-label={product.isWishListed ? `${product.name} is on your Wish List` : `Add ${product.name} to Wish List`} data-testid={`button-wishlist-sealed-${product.id}`} disabled={product.isWishListed} onClick={() => onAddToWishList(product)}>
+          <WishListMark added={product.isWishListed} />
+        </button>
+      </div>
+    </div>
+  </article>;
+}
+
+function SealedProductGrid({ products, user, onAddToBinder, onAddToWishList }: {
+  products: SealedProduct[];
+  user: { username: string } | null;
+  onAddToBinder: (product: SealedProduct) => void;
+  onAddToWishList: (product: SealedProduct) => void;
+}) {
+  if (!products.length) return <div className="empty-state"><div className="empty-icon"><Layers3 /></div><h3>No sealed products found</h3><p>Try another search or choose a different product type.</p></div>;
+  return <div className="card-grid sealed-grid">{products.map((product) => <SealedProductTile key={product.id} product={product} user={user} onAddToBinder={onAddToBinder} onAddToWishList={onAddToWishList} />)}</div>;
+}
+
 function useFavoriteAction(user: { username: string } | null) {
   const [, setLocation] = useLocation();
   const cache = useQueryClient();
@@ -299,16 +351,28 @@ function MultiFilter({ label, options, selected, onToggle }: { label: string; op
   </details>;
 }
 
-function exportBinderCsv(entries: BinderEntry[]) {
+function exportBinderCsv(entries: BinderEntry[], sealedEntries: SealedBinderEntry[]) {
   const rows = [
-    ['Card', 'Set', 'Card number', 'Condition', 'Quantity', 'Simulated market price', 'Simulated total value', 'Notes'],
+    ['Item type', 'Item', 'Set', 'Number / product type', 'Condition', 'Quantity', 'Simulated market price', 'Simulated total value', 'Notes'],
     ...entries.map((entry) => [
+      'Card',
       entry.card.name,
       entry.card.setName,
       entry.card.number,
       entry.condition,
       String(entry.quantity),
       entry.card.marketPrice.toFixed(2),
+      entry.totalValue.toFixed(2),
+      entry.notes,
+    ]),
+    ...sealedEntries.map((entry) => [
+      'Sealed product',
+      entry.product.name,
+      entry.product.setName,
+      entry.product.productType,
+      '',
+      String(entry.quantity),
+      entry.product.basePrice.toFixed(2),
       entry.totalValue.toFixed(2),
       entry.notes,
     ]),
@@ -325,8 +389,11 @@ function exportBinderCsv(entries: BinderEntry[]) {
 
 function CardsPage({ user }: { user: { username: string } | null }) {
   const [, setLocation] = useLocation();
+  const cache = useQueryClient();
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState<'name' | 'price_asc' | 'price_desc'>('name');
+  const [catalogView, setCatalogView] = useState<'cards' | 'sealed'>('cards');
+  const [sealedFilter, setSealedFilter] = useState<'all' | 'Booster Pack' | 'ETB'>('all');
   const [favoritesOnly, setFavoritesOnly] = useState(false);
   const [setFilter, setSetFilter] = useState<string[]>([]);
   const [typeFilter, setTypeFilter] = useState<string[]>([]);
@@ -335,23 +402,69 @@ function CardsPage({ user }: { user: { username: string } | null }) {
   const params: ListCardsParams = useMemo(() => ({ ...(search ? { search } : {}), sort, ...(setFilter.length ? { sets: setFilter } : {}), ...(typeFilter.length ? { types: typeFilter } : {}), ...(rarityFilter.length ? { rarities: rarityFilter } : {}), ...(favoritesOnly ? { favoritesOnly: true } : {}) }), [search, sort, setFilter, typeFilter, rarityFilter, favoritesOnly]);
   const result = useListCards(params, { request: cookieRequest });
   const filters = useListCards(undefined, { request: cookieRequest });
+  const sealedParams: ListSealedProductsParams = useMemo(() => ({
+    ...(search ? { search } : {}),
+    ...(sealedFilter === 'all' ? {} : { productType: sealedFilter }),
+    sort,
+  }), [search, sealedFilter, sort]);
+  const sealedResult = useListSealedProducts(sealedParams, {
+    query: { enabled: catalogView === 'sealed', queryKey: getListSealedProductsQueryKey(sealedParams) },
+    request: cookieRequest,
+  });
   const favorites = useFavoriteAction(user);
   const wishList = useWishListAction(user);
   const sets = Array.from(new Set((filters.data ?? []).map((card) => card.setName))).sort();
   const types = Array.from(new Set((filters.data ?? []).map((card) => card.type))).sort();
   const rarities = Array.from(new Set((filters.data ?? []).map((card) => card.rarity))).sort();
+  const addSealedBinder = useAddSealedBinderEntry({ request: cookieRequest, mutation: { onSuccess: (_entry, variables) => {
+    cache.invalidateQueries({ queryKey: getListSealedProductsQueryKey() });
+    cache.invalidateQueries({ queryKey: getListSealedBinderEntriesQueryKey() });
+    cache.invalidateQueries({ queryKey: getGetDashboardQueryKey() });
+    toast.success('Sealed product added to your binder.');
+  }, onError: (error) => toast.error(failureMessage(error)) } });
+  const addSealedWishList = useAddSealedWishListItem({ request: cookieRequest, mutation: { onSuccess: () => {
+    cache.invalidateQueries({ queryKey: getListSealedProductsQueryKey() });
+    cache.invalidateQueries({ queryKey: getListSealedWishListQueryKey() });
+    toast.success('Added to your Wish List.');
+  }, onError: (error) => toast.error(failureMessage(error)) } });
+  const addSealedToBinder = (product: SealedProduct) => {
+    if (!user) { setLocation('/login'); return; }
+    addSealedBinder.mutate({ sealedProductId: product.id });
+  };
+  const addSealedToWishList = (product: SealedProduct) => {
+    if (!user) { setLocation('/login'); return; }
+    if (!product.isWishListed) addSealedWishList.mutate({ sealedProductId: product.id });
+  };
+  const currentType = typeFilter.length === 1 ? typeFilter[0] : '';
   return <section className="catalog-page">
     <div className="page-title-row"><div><div className="eyebrow"><span className="eyebrow-line" />THE ARCHIVE</div><h1>Card index<span className="title-period">.</span></h1><p>Search the collection. Get to know every print.</p></div><div className="index-stamp"><Layers3 size={17} /> INDEX<br /><b>001 / ∞</b></div></div>
+    <div className="catalog-tabs" role="tablist" aria-label="Card index categories">
+      <button role="tab" aria-selected={catalogView === 'sealed'} className={catalogView === 'sealed' ? 'catalog-tab catalog-tab-active' : 'catalog-tab'} onClick={() => setCatalogView('sealed')} data-testid="tab-catalog-sealed">Sealed</button>
+      <button role="tab" aria-selected={catalogView === 'cards' && !currentType} className={catalogView === 'cards' && !currentType ? 'catalog-tab catalog-tab-active' : 'catalog-tab'} onClick={() => { setCatalogView('cards'); setTypeFilter([]); }} data-testid="tab-catalog-all-cards">All</button>
+      <span className="catalog-tab-divider" aria-hidden="true" />
+      {types.map((type) => <button key={type} role="tab" aria-selected={catalogView === 'cards' && currentType === type} className={catalogView === 'cards' && currentType === type ? 'catalog-tab catalog-tab-active' : 'catalog-tab'} onClick={() => { setCatalogView('cards'); setTypeFilter([type]); }} data-testid={`tab-catalog-type-${type.toLowerCase()}`}>{type}</button>)}
+    </div>
     <div className="catalog-controls">
       <label className="search-control"><Search size={17} /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Name, set, or number" aria-label="Search catalog" data-testid="input-catalog-search" />{search && <button aria-label="Clear search" onClick={() => setSearch('')}><X size={15} /></button>}</label>
-      <label className="select-control"><SlidersHorizontal size={15} /><span>Sort</span><select value={sort} onChange={(e) => setSort(e.target.value as typeof sort)} aria-label="Sort cards" data-testid="select-card-sort"><option value="name">Name, A–Z</option><option value="price_desc">Highest value</option><option value="price_asc">Lowest value</option></select><ChevronDown size={14} /></label>
-      <MultiFilter label="Set" options={sets} selected={setFilter} onToggle={(value) => toggleOption(setFilter, setSetFilter, value)} />
-      <MultiFilter label="Type" options={types} selected={typeFilter} onToggle={(value) => toggleOption(typeFilter, setTypeFilter, value)} />
-      <MultiFilter label="Rarity" options={rarities} selected={rarityFilter} onToggle={(value) => toggleOption(rarityFilter, setRarityFilter, value)} />
-      <button className={`filter-toggle ${favoritesOnly ? 'filter-active' : ''}`} onClick={() => user ? setFavoritesOnly(!favoritesOnly) : setLocation('/login')} data-testid="button-favorites-filter"><Heart size={15} fill={favoritesOnly ? 'currentColor' : 'none'} /> Favorites</button>
-      <span className="results-count">{result.data?.length ?? '—'} RECORDS</span>
+      <label className="select-control"><SlidersHorizontal size={15} /><span>Sort</span><select value={sort} onChange={(e) => setSort(e.target.value as typeof sort)} aria-label={`Sort ${catalogView === 'sealed' ? 'sealed products' : 'cards'}`} data-testid="select-card-sort"><option value="name">Name, A–Z</option><option value="price_desc">Highest value</option><option value="price_asc">Lowest value</option></select><ChevronDown size={14} /></label>
+      {catalogView === 'cards' && <>
+        <MultiFilter label="Set" options={sets} selected={setFilter} onToggle={(value) => toggleOption(setFilter, setSetFilter, value)} />
+        <MultiFilter label="Type" options={types} selected={typeFilter} onToggle={(value) => toggleOption(typeFilter, setTypeFilter, value)} />
+        <MultiFilter label="Rarity" options={rarities} selected={rarityFilter} onToggle={(value) => toggleOption(rarityFilter, setRarityFilter, value)} />
+        <button className={`filter-toggle ${favoritesOnly ? 'filter-active' : ''}`} onClick={() => user ? setFavoritesOnly(!favoritesOnly) : setLocation('/login')} data-testid="button-favorites-filter"><Heart size={15} fill={favoritesOnly ? 'currentColor' : 'none'} /> Favorites</button>
+      </>}
+      <span className="results-count">{catalogView === 'sealed' ? sealedResult.data?.length ?? '—' : result.data?.length ?? '—'} RECORDS</span>
     </div>
-    {result.isLoading ? <SkeletonGrid /> : result.isError ? <QueryError error={result.error} retry={() => result.refetch()} /> : <CatalogGrid cards={result.data ?? []} user={user} onFavorite={favorites} onWishList={wishList} />}
+    {catalogView === 'sealed' && <div className="sealed-subfilters" role="group" aria-label="Filter sealed product type">
+      {[
+        { value: 'all', label: 'All' },
+        { value: 'Booster Pack', label: 'Booster Packs' },
+        { value: 'ETB', label: 'ETBs' },
+      ].map(({ value, label }) => <button key={value} className={sealedFilter === value ? 'sealed-filter-chip sealed-filter-active' : 'sealed-filter-chip'} aria-pressed={sealedFilter === value} onClick={() => setSealedFilter(value as typeof sealedFilter)} data-testid={`filter-sealed-${value.toLowerCase().replaceAll(' ', '-')}`}>{label}</button>)}
+    </div>}
+    {catalogView === 'sealed'
+      ? sealedResult.isLoading ? <SkeletonGrid /> : sealedResult.isError ? <QueryError error={sealedResult.error} retry={() => sealedResult.refetch()} /> : <SealedProductGrid products={sealedResult.data ?? []} user={user} onAddToBinder={addSealedToBinder} onAddToWishList={addSealedToWishList} />
+      : result.isLoading ? <SkeletonGrid /> : result.isError ? <QueryError error={result.error} retry={() => result.refetch()} /> : <CatalogGrid cards={result.data ?? []} user={user} onFavorite={favorites} onWishList={wishList} />}
   </section>;
 }
 
@@ -428,8 +541,44 @@ function BinderPage({ user }: { user: { username: string } | null }) {
     },
     request: cookieRequest,
   });
+  const sealedBinderQuery = useListSealedBinderEntries({
+    query: { enabled: !!user, queryKey: getListSealedBinderEntriesQueryKey() },
+    request: cookieRequest,
+  });
+  const sealedWishListQuery = useListSealedWishList({
+    query: { enabled: !!user, queryKey: getListSealedWishListQueryKey(), refetchInterval: 60_000 },
+    request: cookieRequest,
+  });
   const entries = query.data ?? [];
-  const wishListItems = wishListQuery.data ?? [];
+  const sealedEntries = sealedBinderQuery.data ?? [];
+  const cardWishListItems = wishListQuery.data ?? [];
+  const sealedWishListItems = sealedWishListQuery.data ?? [];
+  const wishListItems = useMemo(() => [
+    ...cardWishListItems.map((item) => ({
+      kind: 'card' as const,
+      key: `card-${item.cardId}`,
+      cardId: item.cardId,
+      targetPrice: item.targetPrice,
+      history: item.history,
+      card: { marketPrice: item.card.marketPrice },
+      name: item.card.name,
+      setName: item.card.setName,
+      number: item.card.number,
+      imageUrl: item.card.imageUrl,
+    })),
+    ...sealedWishListItems.map((item) => ({
+      kind: 'sealed' as const,
+      key: `sealed-${item.sealedProductId}`,
+      sealedProductId: item.sealedProductId,
+      targetPrice: item.targetPrice,
+      history: item.history,
+      card: { marketPrice: item.product.basePrice },
+      name: item.product.name,
+      setName: item.product.setName,
+      number: item.product.productType,
+      productType: item.product.productType,
+    })),
+  ], [cardWishListItems, sealedWishListItems]);
   const wishListValue = wishListItems.reduce((sum, item) => sum + item.card.marketPrice, 0);
   const wishListSortLabels = {
     trend_drop: 'Biggest 30-day drops',
@@ -437,10 +586,7 @@ function BinderPage({ user }: { user: { username: string } | null }) {
     price_high: 'Highest current price',
     price_low: 'Lowest current price',
   } as const;
-  const sortedWishListItems = useMemo(
-    () => sortWishListItems(wishListItems, wishListSort),
-    [wishListItems, wishListSort],
-  );
+  const sortedWishListItems = useMemo(() => sortWishListItems(wishListItems, wishListSort), [wishListItems, wishListSort]);
   const [editing, setEditing] = useState<BinderEntry | null>(null);
   const [editCondition, setEditCondition] = useState('');
   const [editQuantity, setEditQuantity] = useState(1);
@@ -476,21 +622,73 @@ function BinderPage({ user }: { user: { username: string } | null }) {
       onError: (error) => toast.error(failureMessage(error)),
     },
   });
+  const updateSealedBinder = useUpdateSealedBinderEntry({
+    request: cookieRequest,
+    mutation: {
+      onSuccess: () => {
+        cache.invalidateQueries({ queryKey: getListSealedBinderEntriesQueryKey() });
+        cache.invalidateQueries({ queryKey: getListSealedProductsQueryKey() });
+        cache.invalidateQueries({ queryKey: getGetDashboardQueryKey() });
+        toast.success('Sealed binder quantity updated.');
+      },
+      onError: (error) => toast.error(failureMessage(error)),
+    },
+  });
+  const removeSealedBinder = useRemoveSealedBinderEntry({
+    request: cookieRequest,
+    mutation: {
+      onSuccess: () => {
+        cache.invalidateQueries({ queryKey: getListSealedBinderEntriesQueryKey() });
+        cache.invalidateQueries({ queryKey: getListSealedProductsQueryKey() });
+        cache.invalidateQueries({ queryKey: getGetDashboardQueryKey() });
+        toast.success('Sealed product removed from your binder.');
+      },
+      onError: (error) => toast.error(failureMessage(error)),
+    },
+  });
+  const removeSealedWishList = useRemoveSealedWishListItem({
+    request: cookieRequest,
+    mutation: {
+      onSuccess: () => {
+        cache.invalidateQueries({ queryKey: getListSealedWishListQueryKey() });
+        cache.invalidateQueries({ queryKey: getListSealedProductsQueryKey() });
+        toast.success('Removed from your Wish List.');
+      },
+      onError: (error) => toast.error(failureMessage(error)),
+    },
+  });
+  const updateSealedWishListTarget = useUpdateSealedWishListTarget({
+    request: cookieRequest,
+    mutation: {
+      onSuccess: () => {
+        cache.invalidateQueries({ queryKey: getListSealedWishListQueryKey() });
+        toast.success('Wish List target saved.');
+      },
+      onError: (error) => toast.error(failureMessage(error)),
+    },
+  });
   if (!user) return <div className="binder-gate"><div className="gate-mark"><BookOpen size={25} /></div><span className="section-kicker">YOUR PRIVATE COLLECTION</span><h1>A place for<br /><em>the keepers.</em></h1><p>Sign in to catalog your cards, track your collection’s simulated value, and keep the details close.</p><Link href="/login" className="button button-warm">Sign in to your vault <ArrowRight size={16} /></Link><span className="gate-foot">Your binder is private to your account.</span></div>;
-  if (query.isLoading) return <div className="page-loading"><div className="skeleton skeleton-line" /><div className="skeleton skeleton-line short" /><SkeletonGrid /></div>;
+  if (query.isLoading || sealedBinderQuery.isLoading) return <div className="page-loading"><div className="skeleton skeleton-line" /><div className="skeleton skeleton-line short" /><SkeletonGrid /></div>;
   if (query.isError) return <QueryError error={query.error} retry={() => query.refetch()} />;
-  const total = entries.reduce((sum, entry) => sum + entry.totalValue, 0);
+  if (sealedBinderQuery.isError) return <QueryError error={sealedBinderQuery.error} retry={() => sealedBinderQuery.refetch()} />;
+  const total = entries.reduce((sum, entry) => sum + entry.totalValue, 0)
+    + sealedEntries.reduce((sum, entry) => sum + entry.totalValue, 0);
+  const totalCopies = entries.reduce((sum, entry) => sum + entry.quantity, 0)
+    + sealedEntries.reduce((sum, entry) => sum + entry.quantity, 0);
+  const uniqueItems = entries.length + sealedEntries.length;
+  const wishListLoading = wishListQuery.isLoading || sealedWishListQuery.isLoading;
+  const wishListError = wishListQuery.error ?? sealedWishListQuery.error;
   const settings = settingsQuery.data ?? { isPublic: false, hideValue: false };
   const updateSharing = (patch: Partial<typeof settings>) => sharing.mutate({ data: { isPublic: patch.isPublic ?? settings.isPublic, hideValue: patch.hideValue ?? settings.hideValue } });
   const editEntry = (entry: BinderEntry) => { setEditing(entry); setEditCondition(entry.condition); setEditQuantity(entry.quantity); setEditNotes(entry.notes); };
   return <div className="binder-page">
-    <div className="page-title-row"><div><div className="eyebrow"><span className="eyebrow-line" />YOUR COLLECTION / PRIVATE</div><h1>The binder<span className="title-period">.</span></h1><p>Every copy, carefully accounted for.</p></div><div className="binder-actions"><button className="button button-outline" onClick={() => exportBinderCsv(entries)} disabled={!entries.length}><Download size={15} /> Export CSV</button><Link href="/cards" className="button button-warm"><Plus size={16} /> Add cards</Link></div></div>
+    <div className="page-title-row"><div><div className="eyebrow"><span className="eyebrow-line" />YOUR COLLECTION / PRIVATE</div><h1>The binder<span className="title-period">.</span></h1><p>Every copy, carefully accounted for.</p></div><div className="binder-actions"><button className="button button-outline" onClick={() => exportBinderCsv(entries, sealedEntries)} disabled={!uniqueItems}><Download size={15} /> Export CSV</button><Link href="/cards" className="button button-warm"><Plus size={16} /> Add items</Link></div></div>
     <div className="binder-tabs" role="tablist" aria-label="Binder views">
       <button id="tab-collection" role="tab" aria-selected={activeTab === 'collection'} aria-controls="panel-collection" data-testid="tab-binder-collection" className={activeTab === 'collection' ? 'binder-tab binder-tab-active' : 'binder-tab'} onClick={() => setActiveTab('collection')}><BookOpen size={15} /> My Collection</button>
       <button id="tab-wish-list" role="tab" aria-selected={activeTab === 'wish-list'} aria-controls="panel-wish-list" data-testid="tab-binder-wish-list" className={activeTab === 'wish-list' ? 'binder-tab binder-tab-active' : 'binder-tab'} onClick={() => setActiveTab('wish-list')}><WishListMark added /> Wish List <span className="binder-tab-count">{wishListItems.length}</span></button>
     </div>
     {activeTab === 'collection' ? <div id="panel-collection" role="tabpanel" aria-labelledby="tab-collection">
-      <div className="binder-summary"><div><span className="stat-label">TOTAL COPIES</span><strong>{entries.reduce((sum, entry) => sum + entry.quantity, 0)}</strong><small>{entries.length} unique {entries.length === 1 ? 'card' : 'cards'}</small></div><div><span className="stat-label">SIMULATED VALUE</span><strong>{money(total)}</strong><small>Based on current market trace</small></div><div className="binder-summary-note"><Layers3 size={21} /><p>Condition matters. Keep each copy’s details current for a clearer picture.</p></div></div>
+      <div className="binder-summary"><div><span className="stat-label">TOTAL COPIES</span><strong>{totalCopies}</strong><small>{uniqueItems} unique {uniqueItems === 1 ? 'item' : 'items'}</small></div><div><span className="stat-label">SIMULATED VALUE</span><strong>{money(total)}</strong><small>Based on current market trace</small></div><div className="binder-summary-note"><Layers3 size={21} /><p>Keep each item and its quantity current for a clearer picture.</p></div></div>
       <section className="sharing-panel" aria-labelledby="sharing-title">
       <div className="sharing-intro"><div className="sharing-emblem">{settings.isPublic ? <Eye size={20} /> : <ShieldCheck size={20} />}</div><div><span className="section-kicker">YOUR PRIVACY, YOUR CALL</span><h2 id="sharing-title">Share with care.</h2><p>{settings.isPublic ? 'Your binder appears in Community Binders. Your private notes never leave your vault.' : 'Your binder is private by default. Choose what other collectors can see.'}</p></div></div>
       <div className="sharing-controls">
@@ -499,21 +697,26 @@ function BinderPage({ user }: { user: { username: string } | null }) {
       </div>
       <div className="sharing-foot"><span className={`privacy-status ${settings.isPublic ? 'privacy-status-public' : ''}`}><i />{settings.isPublic ? 'VISIBLE TO THE COMMUNITY' : 'PRIVATE TO YOUR ACCOUNT'}</span>{settingsQuery.isError && <span className="inline-error">Sharing settings unavailable. <button className="text-action" onClick={() => settingsQuery.refetch()}>Retry</button></span>}{sharing.isPending && <span className="sharing-saving">Saving your preferences…</span>}</div>
       </section>
-      {!entries.length ? <div className="empty-state binder-empty"><div className="empty-icon"><BookOpen /></div><span className="section-kicker">FIRST PAGE, BLANK</span><h3>Your collection starts with one.</h3><p>Find a card you love and add it here. We’ll keep its value and condition in view.</p><Link href="/cards" className="button button-solid">Browse the card index <ArrowRight size={15} /></Link></div> :
-        <div className="binder-list"><div className="binder-list-heading"><span>CARD / SET</span><span>CONDITION</span><span>QTY.</span><span>EST. VALUE</span><span>TOOLS</span></div>{entries.map((entry) => <article className="binder-row" key={entry.id} data-testid={`binder-entry-${entry.id}`}><Link href={`/cards/${encodeURIComponent(entry.cardId)}`} className="binder-card"><CardArtwork src={entry.card.imageUrl} alt="" /><span><strong>{entry.card.name}</strong><small>{entry.card.setName} · {entry.card.number}</small></span></Link><span className="condition-pill">{entry.condition}</span><span className="binder-qty">{entry.quantity}</span><strong className="binder-value">{money(entry.totalValue)}</strong><div className="row-actions"><button className="icon-button" onClick={() => editEntry(entry)} aria-label={`Edit ${entry.card.name}`} data-testid={`button-edit-entry-${entry.id}`}><SlidersHorizontal size={15} /></button><button className="icon-button danger-icon" onClick={() => setRemoving(entry)} aria-label={`Remove ${entry.card.name}`} data-testid={`button-remove-entry-${entry.id}`}><X size={16} /></button></div>{entry.notes && <p className="binder-note"><Bookmark size={12} /> {entry.notes}</p>}</article>)}</div>}
+      {!uniqueItems ? <div className="empty-state binder-empty"><div className="empty-icon"><BookOpen /></div><span className="section-kicker">FIRST PAGE, BLANK</span><h3>Your collection starts with one.</h3><p>Find a card or sealed product you love and add it here. We’ll keep its value and quantity in view.</p><Link href="/cards" className="button button-solid">Browse the card index <ArrowRight size={15} /></Link></div> :
+        <>
+          {entries.length > 0 && <div className="binder-list"><div className="binder-list-heading"><span>CARD / SET</span><span>CONDITION</span><span>QTY.</span><span>EST. VALUE</span><span>TOOLS</span></div>{entries.map((entry) => <article className="binder-row" key={entry.id} data-testid={`binder-entry-${entry.id}`}><Link href={`/cards/${encodeURIComponent(entry.cardId)}`} className="binder-card"><CardArtwork src={entry.card.imageUrl} alt="" /><span><strong>{entry.card.name}</strong><small>{entry.card.setName} · {entry.card.number}</small></span></Link><span className="condition-pill">{entry.condition}</span><span className="binder-qty">{entry.quantity}</span><strong className="binder-value">{money(entry.totalValue)}</strong><div className="row-actions"><button className="icon-button" onClick={() => editEntry(entry)} aria-label={`Edit ${entry.card.name}`} data-testid={`button-edit-entry-${entry.id}`}><SlidersHorizontal size={15} /></button><button className="icon-button danger-icon" onClick={() => setRemoving(entry)} aria-label={`Remove ${entry.card.name}`} data-testid={`button-remove-entry-${entry.id}`}><X size={16} /></button></div>{entry.notes && <p className="binder-note"><Bookmark size={12} /> {entry.notes}</p>}</article>)}</div>}
+          {sealedEntries.length > 0 && <section className="sealed-binder-section"><div className="sealed-binder-heading"><div><span className="section-kicker">SEALED COLLECTION</span><h2>Unopened finds.</h2></div><span>{sealedEntries.length} {sealedEntries.length === 1 ? 'product' : 'products'}</span></div><div className="sealed-binder-list">{sealedEntries.map((entry) => <article className="sealed-binder-row" key={entry.sealedProductId} data-testid={`sealed-binder-entry-${entry.sealedProductId}`}><span className="sealed-binder-mark"><Layers3 size={18} /></span><div className="sealed-binder-product"><strong>{entry.product.name}</strong><small>{entry.product.setName} · {entry.product.productType}</small></div><div className="sealed-quantity-control"><button className="icon-button" aria-label={`Decrease ${entry.product.name} quantity`} disabled={entry.quantity <= 1 || updateSealedBinder.isPending} onClick={() => updateSealedBinder.mutate({ sealedProductId: entry.sealedProductId, data: { quantity: entry.quantity - 1 } })}><Minus size={14} /></button><span>{entry.quantity}</span><button className="icon-button" aria-label={`Increase ${entry.product.name} quantity`} disabled={updateSealedBinder.isPending} onClick={() => updateSealedBinder.mutate({ sealedProductId: entry.sealedProductId, data: { quantity: entry.quantity + 1 } })}><Plus size={14} /></button></div><strong className="sealed-binder-value">{money(entry.totalValue)}</strong><button className="icon-button danger-icon" aria-label={`Remove ${entry.product.name} from binder`} data-testid={`button-remove-sealed-binder-${entry.sealedProductId}`} disabled={removeSealedBinder.isPending} onClick={() => removeSealedBinder.mutate({ sealedProductId: entry.sealedProductId })}><X size={16} /></button></article>)}</div></section>}
+        </>}
     </div> : <section id="panel-wish-list" role="tabpanel" aria-labelledby="tab-wish-list" className="wish-list-view">
-      <div className="wish-list-summary"><div><span className="stat-label">WISH LIST VALUE</span><strong data-testid="text-wish-list-value">{wishListQuery.isLoading ? '…' : money(wishListValue)}</strong><small>{wishListItems.length} {wishListItems.length === 1 ? 'card' : 'cards'} on the hunt</small></div><div className="wish-list-summary-note"><Heart size={20} /><p>Keep an eye on the cards you hope to find. Target comparisons use current simulated prices, not live market quotes.</p></div></div>
-       {!wishListQuery.isLoading && !wishListQuery.isError && wishListItems.length > 0 && <div className="wish-list-toolbar">
+      <div className="wish-list-summary"><div><span className="stat-label">WISH LIST VALUE</span><strong data-testid="text-wish-list-value">{wishListLoading ? '…' : money(wishListValue)}</strong><small>{wishListItems.length} {wishListItems.length === 1 ? 'item' : 'items'} on the hunt</small></div><div className="wish-list-summary-note"><Heart size={20} /><p>Keep an eye on the cards and sealed products you hope to find. Target comparisons use current simulated prices, not live market quotes.</p></div></div>
+       {!wishListLoading && !wishListError && wishListItems.length > 0 && <div className="wish-list-toolbar">
          <label className="select-control"><SlidersHorizontal size={15} /><span>Sort Wish List</span><select value={wishListSort} onChange={(event) => setWishListSort(event.target.value as typeof wishListSort)} aria-label="Sort Wish List" data-testid="select-wish-list-sort"><option value="trend_drop">Biggest 30-day drops</option><option value="trend_gain">Biggest 30-day gains</option><option value="price_high">Highest current price</option><option value="price_low">Lowest current price</option></select><ChevronDown size={14} /></label>
          <span className="wish-list-sort-status" aria-live="polite">ORDER: {wishListSortLabels[wishListSort].toUpperCase()}</span>
        </div>}
-      {wishListQuery.isLoading ? <div className="wish-list-skeleton" aria-label="Loading Wish List"><div className="skeleton skeleton-art" /><div className="skeleton skeleton-line" /></div> : wishListQuery.isError ? <QueryError error={wishListQuery.error} retry={() => wishListQuery.refetch()} /> : !wishListItems.length ? <div className="empty-state wish-list-empty" data-testid="status-wish-list-empty"><div className="empty-icon"><Heart /></div><span className="section-kicker">THE NEXT CHASE</span><h3>Your wish list is empty — hunt some cards!</h3><p>Save the cards you’re looking for and keep their current simulated value close.</p><Link href="/cards" className="button button-solid">Browse the card index <ArrowRight size={15} /></Link></div> :
-        <div className="wish-list-grid">{sortedWishListItems.map((item) => <article className="wish-list-card" key={item.cardId} data-testid={`wish-list-card-${item.cardId}`}>
-          <Link href={`/cards/${encodeURIComponent(item.cardId)}`} className="wish-list-card-link"><CardArtwork src={item.card.imageUrl} alt={`${item.card.name} card artwork`} /><span><strong>{item.card.name}</strong><small>{item.card.setName} · {item.card.number}</small></span></Link>
-          <div className="wish-list-price"><span>CURRENT SIMULATED PRICE</span><strong>{money(item.card.marketPrice)}</strong><WishListTrend history={item.history} cardName={item.card.name} /></div>
-          <WishListTargetControl cardId={item.cardId} cardName={item.card.name} targetPrice={item.targetPrice} marketPrice={item.card.marketPrice} isPending={updateWishListTarget.isPending} onSave={(targetPrice) => updateWishListTarget.mutate({ cardId: item.cardId, data: { targetPrice } })} />
-          <button className="button button-outline wish-list-remove" onClick={() => removeWishListItem.mutate({ cardId: item.cardId })} disabled={removeWishListItem.isPending} aria-label={`Remove ${item.card.name} from Wish List`} data-testid={`button-remove-wish-list-${item.cardId}`}><X size={14} /> Remove</button>
-        </article>)}</div>}
+       {wishListLoading ? <div className="wish-list-skeleton" aria-label="Loading Wish List"><div className="skeleton skeleton-art" /><div className="skeleton skeleton-line" /></div> : wishListError ? <QueryError error={wishListError} retry={() => { void wishListQuery.refetch(); void sealedWishListQuery.refetch(); }} /> : !wishListItems.length ? <div className="empty-state wish-list-empty" data-testid="status-wish-list-empty"><div className="empty-icon"><Heart /></div><span className="section-kicker">THE NEXT CHASE</span><h3>Your wish list is empty — hunt some cards!</h3><p>Save the cards and sealed products you’re looking for and keep their current simulated value close.</p><Link href="/cards" className="button button-solid">Browse the card index <ArrowRight size={15} /></Link></div> :
+         <div className="wish-list-grid">{sortedWishListItems.map((item) => <article className="wish-list-card" key={item.key} data-testid={`wish-list-card-${item.key}`}>
+           {item.kind === 'card'
+             ? <Link href={`/cards/${encodeURIComponent(item.cardId)}`} className="wish-list-card-link"><CardArtwork src={item.imageUrl} alt={`${item.name} card artwork`} /><span><strong>{item.name}</strong><small>{item.setName} · {item.number}</small></span></Link>
+             : <div className="wish-list-card-link"><span className="sealed-wish-mark"><Layers3 size={20} /></span><span><strong>{item.name}</strong><small>{item.setName} · {item.productType}</small></span></div>}
+           <div className="wish-list-price"><span>CURRENT SIMULATED PRICE</span><strong>{money(item.card.marketPrice)}</strong><WishListTrend history={item.history} cardName={item.name} /></div>
+           <WishListTargetControl cardId={item.key} cardName={item.name} targetPrice={item.targetPrice} marketPrice={item.card.marketPrice} isPending={updateWishListTarget.isPending || updateSealedWishListTarget.isPending} onSave={(targetPrice) => item.kind === 'card' ? updateWishListTarget.mutate({ cardId: item.cardId, data: { targetPrice } }) : updateSealedWishListTarget.mutate({ sealedProductId: item.sealedProductId, data: { targetPrice } })} />
+           <button className="button button-outline wish-list-remove" onClick={() => item.kind === 'card' ? removeWishListItem.mutate({ cardId: item.cardId }) : removeSealedWishList.mutate({ sealedProductId: item.sealedProductId })} disabled={removeWishListItem.isPending || removeSealedWishList.isPending} aria-label={`Remove ${item.name} from Wish List`} data-testid={`button-remove-wish-list-${item.key}`}><X size={14} /> Remove</button>
+         </article>)}</div>}
     </section>}
     {editing && <Modal title={`Edit ${editing.card.name}`} onClose={() => setEditing(null)}><form className="modal-form" onSubmit={(e) => { e.preventDefault(); update.mutate({ entryId: editing.id, data: { condition: editCondition as BinderEntryInputCondition, quantity: Math.max(1, editQuantity), notes: editNotes } }); }}><label>Condition<select value={editCondition} onChange={(e) => setEditCondition(e.target.value)}>{conditions.map((value) => <option key={value}>{value}</option>)}</select></label><label>Quantity<input type="number" min="1" value={editQuantity} onChange={(e) => setEditQuantity(Number(e.target.value))} /></label><label>Notes<textarea maxLength={1000} value={editNotes} onChange={(e) => setEditNotes(e.target.value)} /></label>{update.isError && <p className="inline-error">{failureMessage(update.error)}</p>}<Button type="submit" disabled={update.isPending}>{update.isPending ? 'Updating…' : 'Save changes'}</Button></form></Modal>}
     {removing && <Modal title="Remove this copy?" onClose={() => setRemoving(null)}><p className="confirm-copy">This will remove <strong>{removing.card.name}</strong> from your binder. This action can’t be undone.</p>{remove.isError && <p className="inline-error">{failureMessage(remove.error)}</p>}<div className="modal-actions"><Button variant="outline" onClick={() => setRemoving(null)}>Keep card</Button><Button variant="danger" onClick={() => remove.mutate({ entryId: removing.id })} disabled={remove.isPending}>{remove.isPending ? 'Removing…' : 'Remove copy'}</Button></div></Modal>}

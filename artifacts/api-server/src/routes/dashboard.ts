@@ -6,6 +6,8 @@ import {
   cardsTable,
   favoritesTable,
   wishListTable,
+  sealedBinderEntriesTable,
+  sealedProductsTable,
 } from "@workspace/db";
 import { GetDashboardResponse } from "@workspace/api-zod";
 import { currentUser } from "../lib/auth";
@@ -49,6 +51,15 @@ router.get("/dashboard", async (req, res): Promise<void> => {
       .where(eq(binderEntriesTable.userId, user.id));
     binderCount = entries.reduce((sum, entry) => sum + entry.quantity, 0);
     binderValue = Number(entries.reduce((sum, entry) => sum + entry.quantity * entry.marketPrice, 0).toFixed(2));
+    const sealedEntries = await db
+      .select({ quantity: sealedBinderEntriesTable.quantity, basePrice: sealedProductsTable.basePrice })
+      .from(sealedBinderEntriesTable)
+      .innerJoin(sealedProductsTable, eq(sealedBinderEntriesTable.sealedProductId, sealedProductsTable.id))
+      .where(eq(sealedBinderEntriesTable.userId, user.id));
+    binderCount += sealedEntries.reduce((sum, entry) => sum + entry.quantity, 0);
+    binderValue = Number((
+      binderValue + sealedEntries.reduce((sum, entry) => sum + entry.quantity * entry.basePrice, 0)
+    ).toFixed(2));
     const [favorites, wishList] = await Promise.all([
       db
         .select({ cardId: favoritesTable.cardId })

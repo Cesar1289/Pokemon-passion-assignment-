@@ -7,6 +7,7 @@ import binderSettingsRouter from "./binder-settings";
 import dashboardRouter from "./dashboard";
 import communityRouter from "./community";
 import wishListRouter from "./wish-list";
+import sealedProductsRouter from "./sealed-products";
 
 const router: IRouter = Router();
 
@@ -18,5 +19,6 @@ router.use(binderRouter);
 router.use(dashboardRouter);
 router.use(communityRouter);
 router.use(wishListRouter);
+router.use(sealedProductsRouter);
 
 export default router;

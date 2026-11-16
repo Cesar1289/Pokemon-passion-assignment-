@@ -34,9 +34,14 @@ import type {
   Error,
   HealthStatus,
   ListCardsParams,
+  ListSealedProductsParams,
   LoginInput,
   PublicBinderSummary,
   RegisterInput,
+  SealedBinderEntry,
+  SealedBinderQuantityUpdate,
+  SealedProduct,
+  SealedWishListEntry,
   Session,
   WishListEntry,
   WishListTargetUpdate
@@ -1511,6 +1516,718 @@ export const useUpdateWishListTarget = <TError = ErrorType<Error>,
         TContext
       > => {
       return useMutation(getUpdateWishListTargetMutationOptions(options));
+    }
+
+export const getListSealedProductsUrl = (params?: ListSealedProductsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/sealed-products?${stringifiedParams}` : `/api/sealed-products`
+}
+
+/**
+ * @summary Search and sort the sealed product catalog
+ */
+export const listSealedProducts = async (params?: ListSealedProductsParams, options?: Parameters<typeof customFetch>[1]): Promise<SealedProduct[]> => {
+
+  return customFetch<SealedProduct[]>(getListSealedProductsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListSealedProductsQueryKey = (params?: ListSealedProductsParams,) => {
+    return [
+    `/api/sealed-products`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListSealedProductsQueryOptions = <TData = Awaited<ReturnType<typeof listSealedProducts>>, TError = ErrorType<Error>>(params?: ListSealedProductsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listSealedProducts>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListSealedProductsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listSealedProducts>>> = ({ signal }) => listSealedProducts(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listSealedProducts>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListSealedProductsQueryResult = NonNullable<Awaited<ReturnType<typeof listSealedProducts>>>
+export type ListSealedProductsQueryError = ErrorType<Error>
+
+
+/**
+ * @summary Search and sort the sealed product catalog
+ */
+
+export function useListSealedProducts<TData = Awaited<ReturnType<typeof listSealedProducts>>, TError = ErrorType<Error>>(
+ params?: ListSealedProductsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listSealedProducts>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListSealedProductsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getListSealedWishListUrl = () => {
+
+
+
+
+  return `/api/sealed-wish-list`
+}
+
+/**
+ * @summary List the signed-in user's wished-for sealed products
+ */
+export const listSealedWishList = async ( options?: Parameters<typeof customFetch>[1]): Promise<SealedWishListEntry[]> => {
+
+  return customFetch<SealedWishListEntry[]>(getListSealedWishListUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListSealedWishListQueryKey = () => {
+    return [
+    `/api/sealed-wish-list`
+    ] as const;
+    }
+
+
+export const getListSealedWishListQueryOptions = <TData = Awaited<ReturnType<typeof listSealedWishList>>, TError = ErrorType<Error>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listSealedWishList>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListSealedWishListQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listSealedWishList>>> = ({ signal }) => listSealedWishList({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listSealedWishList>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListSealedWishListQueryResult = NonNullable<Awaited<ReturnType<typeof listSealedWishList>>>
+export type ListSealedWishListQueryError = ErrorType<Error>
+
+
+/**
+ * @summary List the signed-in user's wished-for sealed products
+ */
+
+export function useListSealedWishList<TData = Awaited<ReturnType<typeof listSealedWishList>>, TError = ErrorType<Error>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listSealedWishList>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListSealedWishListQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getAddSealedWishListItemUrl = (sealedProductId: string,) => {
+
+
+
+
+  return `/api/sealed-wish-list/${sealedProductId}`
+}
+
+/**
+ * @summary Add a sealed product to the signed-in user's wish list
+ */
+export const addSealedWishListItem = async (sealedProductId: string, options?: Parameters<typeof customFetch>[1]): Promise<SealedWishListEntry> => {
+
+  return customFetch<SealedWishListEntry>(getAddSealedWishListItemUrl(sealedProductId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getAddSealedWishListItemMutationKey = () => ['addSealedWishListItem'] as const;
+
+export const getAddSealedWishListItemMutationOptions = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addSealedWishListItem>>, TError,AddSealedWishListItemMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof addSealedWishListItem>>, TError,AddSealedWishListItemMutationVariables, TContext> => {
+
+const mutationKey = getAddSealedWishListItemMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof addSealedWishListItem>>, AddSealedWishListItemMutationVariables> = (props) => {
+          const {sealedProductId} = props ?? {};
+
+          return  addSealedWishListItem(sealedProductId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AddSealedWishListItemMutationResult = NonNullable<Awaited<ReturnType<typeof addSealedWishListItem>>>
+
+    export type AddSealedWishListItemMutationError = ErrorType<Error>
+    export type AddSealedWishListItemMutationVariables = {sealedProductId: string}
+
+    /**
+ * @summary Add a sealed product to the signed-in user's wish list
+ */
+export const useAddSealedWishListItem = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addSealedWishListItem>>, TError,AddSealedWishListItemMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof addSealedWishListItem>>,
+        TError,
+        AddSealedWishListItemMutationVariables,
+        TContext
+      > => {
+      return useMutation(getAddSealedWishListItemMutationOptions(options));
+    }
+
+export const getUpdateSealedWishListTargetUrl = (sealedProductId: string,) => {
+
+
+
+
+  return `/api/sealed-wish-list/${sealedProductId}`
+}
+
+/**
+ * @summary Set or clear a target price for a wished-for sealed product
+ */
+export const updateSealedWishListTarget = async (sealedProductId: string,
+    wishListTargetUpdate: WishListTargetUpdate, options?: Parameters<typeof customFetch>[1]): Promise<SealedWishListEntry> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<SealedWishListEntry>(getUpdateSealedWishListTargetUrl(sealedProductId),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(wishListTargetUpdate)
+  }
+);}
+
+
+
+
+
+export const getUpdateSealedWishListTargetMutationKey = () => ['updateSealedWishListTarget'] as const;
+
+export const getUpdateSealedWishListTargetMutationOptions = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateSealedWishListTarget>>, TError,UpdateSealedWishListTargetMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateSealedWishListTarget>>, TError,UpdateSealedWishListTargetMutationVariables, TContext> => {
+
+const mutationKey = getUpdateSealedWishListTargetMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateSealedWishListTarget>>, UpdateSealedWishListTargetMutationVariables> = (props) => {
+          const {sealedProductId,data} = props ?? {};
+
+          return  updateSealedWishListTarget(sealedProductId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateSealedWishListTargetMutationResult = NonNullable<Awaited<ReturnType<typeof updateSealedWishListTarget>>>
+    export type UpdateSealedWishListTargetMutationBody = BodyType<WishListTargetUpdate>
+    export type UpdateSealedWishListTargetMutationError = ErrorType<Error>
+    export type UpdateSealedWishListTargetMutationVariables = {sealedProductId: string;data: BodyType<WishListTargetUpdate>}
+
+    /**
+ * @summary Set or clear a target price for a wished-for sealed product
+ */
+export const useUpdateSealedWishListTarget = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateSealedWishListTarget>>, TError,UpdateSealedWishListTargetMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateSealedWishListTarget>>,
+        TError,
+        UpdateSealedWishListTargetMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUpdateSealedWishListTargetMutationOptions(options));
+    }
+
+export const getRemoveSealedWishListItemUrl = (sealedProductId: string,) => {
+
+
+
+
+  return `/api/sealed-wish-list/${sealedProductId}`
+}
+
+/**
+ * @summary Remove a sealed product from the signed-in user's wish list
+ */
+export const removeSealedWishListItem = async (sealedProductId: string, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getRemoveSealedWishListItemUrl(sealedProductId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getRemoveSealedWishListItemMutationKey = () => ['removeSealedWishListItem'] as const;
+
+export const getRemoveSealedWishListItemMutationOptions = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removeSealedWishListItem>>, TError,RemoveSealedWishListItemMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof removeSealedWishListItem>>, TError,RemoveSealedWishListItemMutationVariables, TContext> => {
+
+const mutationKey = getRemoveSealedWishListItemMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof removeSealedWishListItem>>, RemoveSealedWishListItemMutationVariables> = (props) => {
+          const {sealedProductId} = props ?? {};
+
+          return  removeSealedWishListItem(sealedProductId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RemoveSealedWishListItemMutationResult = NonNullable<Awaited<ReturnType<typeof removeSealedWishListItem>>>
+
+    export type RemoveSealedWishListItemMutationError = ErrorType<Error>
+    export type RemoveSealedWishListItemMutationVariables = {sealedProductId: string}
+
+    /**
+ * @summary Remove a sealed product from the signed-in user's wish list
+ */
+export const useRemoveSealedWishListItem = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removeSealedWishListItem>>, TError,RemoveSealedWishListItemMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof removeSealedWishListItem>>,
+        TError,
+        RemoveSealedWishListItemMutationVariables,
+        TContext
+      > => {
+      return useMutation(getRemoveSealedWishListItemMutationOptions(options));
+    }
+
+export const getListSealedBinderEntriesUrl = () => {
+
+
+
+
+  return `/api/sealed-binder`
+}
+
+/**
+ * @summary List the signed-in user's sealed binder entries
+ */
+export const listSealedBinderEntries = async ( options?: Parameters<typeof customFetch>[1]): Promise<SealedBinderEntry[]> => {
+
+  return customFetch<SealedBinderEntry[]>(getListSealedBinderEntriesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListSealedBinderEntriesQueryKey = () => {
+    return [
+    `/api/sealed-binder`
+    ] as const;
+    }
+
+
+export const getListSealedBinderEntriesQueryOptions = <TData = Awaited<ReturnType<typeof listSealedBinderEntries>>, TError = ErrorType<Error>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listSealedBinderEntries>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListSealedBinderEntriesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listSealedBinderEntries>>> = ({ signal }) => listSealedBinderEntries({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listSealedBinderEntries>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListSealedBinderEntriesQueryResult = NonNullable<Awaited<ReturnType<typeof listSealedBinderEntries>>>
+export type ListSealedBinderEntriesQueryError = ErrorType<Error>
+
+
+/**
+ * @summary List the signed-in user's sealed binder entries
+ */
+
+export function useListSealedBinderEntries<TData = Awaited<ReturnType<typeof listSealedBinderEntries>>, TError = ErrorType<Error>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listSealedBinderEntries>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListSealedBinderEntriesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getAddSealedBinderEntryUrl = (sealedProductId: string,) => {
+
+
+
+
+  return `/api/sealed-binder/${sealedProductId}`
+}
+
+/**
+ * @summary Add one sealed product to the signed-in user's binder
+ */
+export const addSealedBinderEntry = async (sealedProductId: string, options?: Parameters<typeof customFetch>[1]): Promise<SealedBinderEntry> => {
+
+  return customFetch<SealedBinderEntry>(getAddSealedBinderEntryUrl(sealedProductId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getAddSealedBinderEntryMutationKey = () => ['addSealedBinderEntry'] as const;
+
+export const getAddSealedBinderEntryMutationOptions = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addSealedBinderEntry>>, TError,AddSealedBinderEntryMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof addSealedBinderEntry>>, TError,AddSealedBinderEntryMutationVariables, TContext> => {
+
+const mutationKey = getAddSealedBinderEntryMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof addSealedBinderEntry>>, AddSealedBinderEntryMutationVariables> = (props) => {
+          const {sealedProductId} = props ?? {};
+
+          return  addSealedBinderEntry(sealedProductId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AddSealedBinderEntryMutationResult = NonNullable<Awaited<ReturnType<typeof addSealedBinderEntry>>>
+
+    export type AddSealedBinderEntryMutationError = ErrorType<Error>
+    export type AddSealedBinderEntryMutationVariables = {sealedProductId: string}
+
+    /**
+ * @summary Add one sealed product to the signed-in user's binder
+ */
+export const useAddSealedBinderEntry = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addSealedBinderEntry>>, TError,AddSealedBinderEntryMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof addSealedBinderEntry>>,
+        TError,
+        AddSealedBinderEntryMutationVariables,
+        TContext
+      > => {
+      return useMutation(getAddSealedBinderEntryMutationOptions(options));
+    }
+
+export const getUpdateSealedBinderEntryUrl = (sealedProductId: string,) => {
+
+
+
+
+  return `/api/sealed-binder/${sealedProductId}`
+}
+
+/**
+ * @summary Update a sealed binder quantity
+ */
+export const updateSealedBinderEntry = async (sealedProductId: string,
+    sealedBinderQuantityUpdate: SealedBinderQuantityUpdate, options?: Parameters<typeof customFetch>[1]): Promise<SealedBinderEntry> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<SealedBinderEntry>(getUpdateSealedBinderEntryUrl(sealedProductId),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(sealedBinderQuantityUpdate)
+  }
+);}
+
+
+
+
+
+export const getUpdateSealedBinderEntryMutationKey = () => ['updateSealedBinderEntry'] as const;
+
+export const getUpdateSealedBinderEntryMutationOptions = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateSealedBinderEntry>>, TError,UpdateSealedBinderEntryMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateSealedBinderEntry>>, TError,UpdateSealedBinderEntryMutationVariables, TContext> => {
+
+const mutationKey = getUpdateSealedBinderEntryMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateSealedBinderEntry>>, UpdateSealedBinderEntryMutationVariables> = (props) => {
+          const {sealedProductId,data} = props ?? {};
+
+          return  updateSealedBinderEntry(sealedProductId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateSealedBinderEntryMutationResult = NonNullable<Awaited<ReturnType<typeof updateSealedBinderEntry>>>
+    export type UpdateSealedBinderEntryMutationBody = BodyType<SealedBinderQuantityUpdate>
+    export type UpdateSealedBinderEntryMutationError = ErrorType<Error>
+    export type UpdateSealedBinderEntryMutationVariables = {sealedProductId: string;data: BodyType<SealedBinderQuantityUpdate>}
+
+    /**
+ * @summary Update a sealed binder quantity
+ */
+export const useUpdateSealedBinderEntry = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateSealedBinderEntry>>, TError,UpdateSealedBinderEntryMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateSealedBinderEntry>>,
+        TError,
+        UpdateSealedBinderEntryMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUpdateSealedBinderEntryMutationOptions(options));
+    }
+
+export const getRemoveSealedBinderEntryUrl = (sealedProductId: string,) => {
+
+
+
+
+  return `/api/sealed-binder/${sealedProductId}`
+}
+
+/**
+ * @summary Remove a sealed product from the signed-in user's binder
+ */
+export const removeSealedBinderEntry = async (sealedProductId: string, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getRemoveSealedBinderEntryUrl(sealedProductId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getRemoveSealedBinderEntryMutationKey = () => ['removeSealedBinderEntry'] as const;
+
+export const getRemoveSealedBinderEntryMutationOptions = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removeSealedBinderEntry>>, TError,RemoveSealedBinderEntryMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof removeSealedBinderEntry>>, TError,RemoveSealedBinderEntryMutationVariables, TContext> => {
+
+const mutationKey = getRemoveSealedBinderEntryMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof removeSealedBinderEntry>>, RemoveSealedBinderEntryMutationVariables> = (props) => {
+          const {sealedProductId} = props ?? {};
+
+          return  removeSealedBinderEntry(sealedProductId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RemoveSealedBinderEntryMutationResult = NonNullable<Awaited<ReturnType<typeof removeSealedBinderEntry>>>
+
+    export type RemoveSealedBinderEntryMutationError = ErrorType<Error>
+    export type RemoveSealedBinderEntryMutationVariables = {sealedProductId: string}
+
+    /**
+ * @summary Remove a sealed product from the signed-in user's binder
+ */
+export const useRemoveSealedBinderEntry = <TError = ErrorType<Error>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removeSealedBinderEntry>>, TError,RemoveSealedBinderEntryMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof removeSealedBinderEntry>>,
+        TError,
+        RemoveSealedBinderEntryMutationVariables,
+        TContext
+      > => {
+      return useMutation(getRemoveSealedBinderEntryMutationOptions(options));
     }
 
 export const getGetBinderSettingsUrl = () => {

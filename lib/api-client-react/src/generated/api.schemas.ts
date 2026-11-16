@@ -53,6 +53,55 @@ export interface PricePoint {
   value: number;
 }
 
+export type SealedProductProductType = typeof SealedProductProductType[keyof typeof SealedProductProductType];
+
+
+export const SealedProductProductType = {
+  Booster_Pack: 'Booster Pack',
+  ETB: 'ETB',
+} as const;
+
+export interface SealedProduct {
+  id: string;
+  name: string;
+  setName: string;
+  setReleaseYear: number;
+  productType: SealedProductProductType;
+  basePrice: number;
+  trendPercent: number;
+  isWishListed: boolean;
+  binderQuantity: number;
+}
+
+export interface SealedWishListEntry {
+  sealedProductId: string;
+  /**
+     * @minimum 0
+     * @nullable
+     */
+  targetPrice: number | null;
+  product: SealedProduct;
+  /**
+     * Available simulated daily prices within the last 30 UTC calendar days, including today, ordered oldest first. May be empty or incomplete; independent of the current base price.
+     * @maxItems 30
+     */
+  history: PricePoint[];
+}
+
+export interface SealedBinderEntry {
+  id: number;
+  sealedProductId: string;
+  quantity: number;
+  notes: string;
+  product: SealedProduct;
+  totalValue: number;
+}
+
+export interface SealedBinderQuantityUpdate {
+  /** @minimum 1 */
+  quantity: number;
+}
+
 export interface Card {
   id: string;
   name: string;
@@ -248,6 +297,29 @@ export type ListCardsSort = typeof ListCardsSort[keyof typeof ListCardsSort];
 
 
 export const ListCardsSort = {
+  name: 'name',
+  price_asc: 'price_asc',
+  price_desc: 'price_desc',
+} as const;
+
+export type ListSealedProductsParams = {
+search?: string;
+productType?: ListSealedProductsProductType;
+sort?: ListSealedProductsSort;
+};
+
+export type ListSealedProductsProductType = typeof ListSealedProductsProductType[keyof typeof ListSealedProductsProductType];
+
+
+export const ListSealedProductsProductType = {
+  Booster_Pack: 'Booster Pack',
+  ETB: 'ETB',
+} as const;
+
+export type ListSealedProductsSort = typeof ListSealedProductsSort[keyof typeof ListSealedProductsSort];
+
+
+export const ListSealedProductsSort = {
   name: 'name',
   price_asc: 'price_asc',
   price_desc: 'price_desc',

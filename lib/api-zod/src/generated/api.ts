@@ -472,6 +472,261 @@ export const UpdateWishListTargetResponse = zod.object({
 
 
 /**
+ * @summary Search and sort the sealed product catalog
+ */
+export const listSealedProductsQuerySortDefault = `name`;
+
+export const ListSealedProductsQueryParams = zod.object({
+  "search": zod.coerce.string().optional(),
+  "productType": zod.enum(['Booster Pack', 'ETB']).optional(),
+  "sort": zod.enum(['name', 'price_asc', 'price_desc']).default(listSealedProductsQuerySortDefault)
+})
+
+export const ListSealedProductsResponseItem = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "setName": zod.string(),
+  "setReleaseYear": zod.number().int(),
+  "productType": zod.enum(['Booster Pack', 'ETB']),
+  "basePrice": zod.number(),
+  "trendPercent": zod.number(),
+  "isWishListed": zod.boolean(),
+  "binderQuantity": zod.number().int()
+})
+export const ListSealedProductsResponse = zod.array(ListSealedProductsResponseItem)
+
+
+/**
+ * @summary List the signed-in user's wished-for sealed products
+ */
+export const listSealedWishListResponseTargetPriceMin = 0;
+
+export const listSealedWishListResponseHistoryMax = 30;
+
+
+
+export const ListSealedWishListResponseItem = zod.object({
+  "sealedProductId": zod.string(),
+  "targetPrice": zod.number().min(listSealedWishListResponseTargetPriceMin).nullable(),
+  "product": zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "setName": zod.string(),
+  "setReleaseYear": zod.number().int(),
+  "productType": zod.enum(['Booster Pack', 'ETB']),
+  "basePrice": zod.number(),
+  "trendPercent": zod.number(),
+  "isWishListed": zod.boolean(),
+  "binderQuantity": zod.number().int()
+}),
+  "history": zod.array(zod.object({
+  "day": zod.string(),
+  "value": zod.number()
+})).max(listSealedWishListResponseHistoryMax).describe('Available simulated daily prices within the last 30 UTC calendar days, including today, ordered oldest first. May be empty or incomplete; independent of the current base price.')
+})
+export const ListSealedWishListResponse = zod.array(ListSealedWishListResponseItem)
+
+
+/**
+ * @summary Add a sealed product to the signed-in user's wish list
+ */
+
+
+
+export const AddSealedWishListItemParams = zod.object({
+  "sealedProductId": zod.coerce.string().min(1)
+})
+
+export const addSealedWishListItemResponseTargetPriceMin = 0;
+
+export const addSealedWishListItemResponseHistoryMax = 30;
+
+
+
+export const AddSealedWishListItemResponse = zod.object({
+  "sealedProductId": zod.string(),
+  "targetPrice": zod.number().min(addSealedWishListItemResponseTargetPriceMin).nullable(),
+  "product": zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "setName": zod.string(),
+  "setReleaseYear": zod.number().int(),
+  "productType": zod.enum(['Booster Pack', 'ETB']),
+  "basePrice": zod.number(),
+  "trendPercent": zod.number(),
+  "isWishListed": zod.boolean(),
+  "binderQuantity": zod.number().int()
+}),
+  "history": zod.array(zod.object({
+  "day": zod.string(),
+  "value": zod.number()
+})).max(addSealedWishListItemResponseHistoryMax).describe('Available simulated daily prices within the last 30 UTC calendar days, including today, ordered oldest first. May be empty or incomplete; independent of the current base price.')
+})
+
+
+/**
+ * @summary Set or clear a target price for a wished-for sealed product
+ */
+
+
+
+export const UpdateSealedWishListTargetParams = zod.object({
+  "sealedProductId": zod.coerce.string().min(1)
+})
+
+export const updateSealedWishListTargetBodyTargetPriceMin = 0;
+
+
+
+export const UpdateSealedWishListTargetBody = zod.object({
+  "targetPrice": zod.number().min(updateSealedWishListTargetBodyTargetPriceMin).nullable()
+})
+
+export const updateSealedWishListTargetResponseTargetPriceMin = 0;
+
+export const updateSealedWishListTargetResponseHistoryMax = 30;
+
+
+
+export const UpdateSealedWishListTargetResponse = zod.object({
+  "sealedProductId": zod.string(),
+  "targetPrice": zod.number().min(updateSealedWishListTargetResponseTargetPriceMin).nullable(),
+  "product": zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "setName": zod.string(),
+  "setReleaseYear": zod.number().int(),
+  "productType": zod.enum(['Booster Pack', 'ETB']),
+  "basePrice": zod.number(),
+  "trendPercent": zod.number(),
+  "isWishListed": zod.boolean(),
+  "binderQuantity": zod.number().int()
+}),
+  "history": zod.array(zod.object({
+  "day": zod.string(),
+  "value": zod.number()
+})).max(updateSealedWishListTargetResponseHistoryMax).describe('Available simulated daily prices within the last 30 UTC calendar days, including today, ordered oldest first. May be empty or incomplete; independent of the current base price.')
+})
+
+
+/**
+ * @summary Remove a sealed product from the signed-in user's wish list
+ */
+
+
+
+export const RemoveSealedWishListItemParams = zod.object({
+  "sealedProductId": zod.coerce.string().min(1)
+})
+
+export const RemoveSealedWishListItemResponse = zod.void()
+
+
+/**
+ * @summary List the signed-in user's sealed binder entries
+ */
+export const ListSealedBinderEntriesResponseItem = zod.object({
+  "id": zod.number().int(),
+  "sealedProductId": zod.string(),
+  "quantity": zod.number().int(),
+  "notes": zod.string(),
+  "product": zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "setName": zod.string(),
+  "setReleaseYear": zod.number().int(),
+  "productType": zod.enum(['Booster Pack', 'ETB']),
+  "basePrice": zod.number(),
+  "trendPercent": zod.number(),
+  "isWishListed": zod.boolean(),
+  "binderQuantity": zod.number().int()
+}),
+  "totalValue": zod.number()
+})
+export const ListSealedBinderEntriesResponse = zod.array(ListSealedBinderEntriesResponseItem)
+
+
+/**
+ * @summary Add one sealed product to the signed-in user's binder
+ */
+
+
+
+export const AddSealedBinderEntryParams = zod.object({
+  "sealedProductId": zod.coerce.string().min(1)
+})
+
+export const AddSealedBinderEntryResponse = zod.object({
+  "id": zod.number().int(),
+  "sealedProductId": zod.string(),
+  "quantity": zod.number().int(),
+  "notes": zod.string(),
+  "product": zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "setName": zod.string(),
+  "setReleaseYear": zod.number().int(),
+  "productType": zod.enum(['Booster Pack', 'ETB']),
+  "basePrice": zod.number(),
+  "trendPercent": zod.number(),
+  "isWishListed": zod.boolean(),
+  "binderQuantity": zod.number().int()
+}),
+  "totalValue": zod.number()
+})
+
+
+/**
+ * @summary Update a sealed binder quantity
+ */
+
+
+
+export const UpdateSealedBinderEntryParams = zod.object({
+  "sealedProductId": zod.coerce.string().min(1)
+})
+
+
+
+
+export const UpdateSealedBinderEntryBody = zod.object({
+  "quantity": zod.number().int().min(1)
+})
+
+export const UpdateSealedBinderEntryResponse = zod.object({
+  "id": zod.number().int(),
+  "sealedProductId": zod.string(),
+  "quantity": zod.number().int(),
+  "notes": zod.string(),
+  "product": zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "setName": zod.string(),
+  "setReleaseYear": zod.number().int(),
+  "productType": zod.enum(['Booster Pack', 'ETB']),
+  "basePrice": zod.number(),
+  "trendPercent": zod.number(),
+  "isWishListed": zod.boolean(),
+  "binderQuantity": zod.number().int()
+}),
+  "totalValue": zod.number()
+})
+
+
+/**
+ * @summary Remove a sealed product from the signed-in user's binder
+ */
+
+
+
+export const RemoveSealedBinderEntryParams = zod.object({
+  "sealedProductId": zod.coerce.string().min(1)
+})
+
+export const RemoveSealedBinderEntryResponse = zod.void()
+
+
+/**
  * @summary Get personal binder sharing settings
  */
 export const GetBinderSettingsResponse = zod.object({

@@ -21,3 +21,5 @@ export * from "./cards";
 export * from "./collections";
 export * from "./users";
 export * from "./wish-list";
+export * from "./sealed-products";
+export * from "./sealed-collections";

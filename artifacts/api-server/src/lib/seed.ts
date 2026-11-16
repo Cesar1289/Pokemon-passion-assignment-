@@ -6,6 +6,8 @@ import {
   db,
   favoritesTable,
   priceHistoryTable,
+  sealedPriceHistoryTable,
+  sealedProductsTable,
 } from "@workspace/db";
 import { logger } from "./logger";
 
@@ -362,6 +364,30 @@ const retiredSeedCardIds = [
   "base1-62",
 ];
 
+type SeedSealedProduct = {
+  id: string;
+  name: string;
+  setName: string;
+  setReleaseYear: number;
+  productType: "Booster Pack" | "ETB";
+  basePrice: number;
+};
+
+const seedSealedProducts: SeedSealedProduct[] = [
+  { id: "S1", name: "Booster Pack", setName: "Scarlet & Violet 151", setReleaseYear: 2023, productType: "Booster Pack", basePrice: 6.5 },
+  { id: "S2", name: "Elite Trainer Box", setName: "Scarlet & Violet 151", setReleaseYear: 2023, productType: "ETB", basePrice: 65 },
+  { id: "S3", name: "Booster Pack", setName: "Evolving Skies", setReleaseYear: 2021, productType: "Booster Pack", basePrice: 14 },
+  { id: "S4", name: "Elite Trainer Box", setName: "Evolving Skies", setReleaseYear: 2021, productType: "ETB", basePrice: 95 },
+  { id: "S5", name: "Booster Pack", setName: "Obsidian Flames", setReleaseYear: 2023, productType: "Booster Pack", basePrice: 5 },
+  { id: "S6", name: "Elite Trainer Box", setName: "Obsidian Flames", setReleaseYear: 2023, productType: "ETB", basePrice: 45 },
+  { id: "S7", name: "Booster Pack", setName: "Paldean Fates", setReleaseYear: 2024, productType: "Booster Pack", basePrice: 6 },
+  { id: "S8", name: "Elite Trainer Box", setName: "Paldean Fates", setReleaseYear: 2024, productType: "ETB", basePrice: 55 },
+  { id: "S9", name: "Booster Pack", setName: "Crown Zenith", setReleaseYear: 2023, productType: "Booster Pack", basePrice: 9 },
+  { id: "S10", name: "Elite Trainer Box", setName: "Crown Zenith", setReleaseYear: 2023, productType: "ETB", basePrice: 70 },
+  { id: "S11", name: "Booster Pack (1st Ed)", setName: "Base Set, 1999", setReleaseYear: 1999, productType: "Booster Pack", basePrice: 450 },
+  { id: "S12", name: "Booster Pack (1st Ed)", setName: "Neo Genesis, 2000", setReleaseYear: 2000, productType: "Booster Pack", basePrice: 550 },
+];
+
 /**
  * Stable simulated daily prices copied from the repository's seed-content spec.
  * Day numbers are mapped to calendar dates when persisted to PostgreSQL.
@@ -445,6 +471,21 @@ export async function seedCatalog(): Promise<void> {
       });
     }
   }
+  const sealedHistoryRows: Array<typeof sealedPriceHistoryTable.$inferInsert> = [];
+  for (const product of seedSealedProducts) {
+    const history = priceHistory(product.basePrice);
+    for (const point of history) {
+      const date = new Date(today);
+      date.setUTCDate(date.getUTCDate() - (history.length - point.day));
+      const day = date.toISOString().slice(0, 10);
+      sealedHistoryRows.push({
+        id: `${product.id}-${day}`,
+        sealedProductId: product.id,
+        day,
+        value: point.price,
+      });
+    }
+  }
 
   await db.transaction(async (tx) => {
     await tx
@@ -472,6 +513,23 @@ export async function seedCatalog(): Promise<void> {
       .delete(priceHistoryTable)
       .where(inArray(priceHistoryTable.cardId, seedIds));
     await tx.insert(priceHistoryTable).values(historyRows);
+    await tx
+      .insert(sealedProductsTable)
+      .values(seedSealedProducts)
+      .onConflictDoUpdate({
+        target: sealedProductsTable.id,
+        set: {
+          name: sql`excluded.name`,
+          setName: sql`excluded.set_name`,
+          setReleaseYear: sql`excluded.set_release_year`,
+          productType: sql`excluded.product_type`,
+          basePrice: sql`excluded.base_price`,
+        },
+      });
+    await tx
+      .delete(sealedPriceHistoryTable)
+      .where(inArray(sealedPriceHistoryTable.sealedProductId, seedSealedProducts.map((product) => product.id)));
+    await tx.insert(sealedPriceHistoryTable).values(sealedHistoryRows);
     if (removableLegacyIds.length > 0) {
       await tx.delete(cardsTable).where(inArray(cardsTable.id, removableLegacyIds));
     }
@@ -481,6 +539,8 @@ export async function seedCatalog(): Promise<void> {
     {
       cardCount: seedCards.length,
       historyPointCount: historyRows.length,
+      sealedProductCount: seedSealedProducts.length,
+      sealedHistoryPointCount: sealedHistoryRows.length,
       removedLegacyCardCount: removableLegacyIds.length,
     },
     "Synchronized the PokeVault seed catalog",

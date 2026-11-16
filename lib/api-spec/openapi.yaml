@@ -436,6 +436,230 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+  /sealed-products:
+    get:
+      operationId: listSealedProducts
+      tags: [cards]
+      summary: Search and sort the sealed product catalog
+      parameters:
+        - in: query
+          name: search
+          schema: { type: string }
+        - in: query
+          name: productType
+          schema: { type: string, enum: [Booster Pack, ETB] }
+        - in: query
+          name: sort
+          schema: { type: string, enum: [name, price_asc, price_desc], default: name }
+      responses:
+        "200":
+          description: Sealed products with simulated prices and 30-day movement
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SealedProduct"
+        "400":
+          description: Invalid search, product type, or sort
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /sealed-wish-list:
+    get:
+      operationId: listSealedWishList
+      tags: [wish-list]
+      summary: List the signed-in user's wished-for sealed products
+      responses:
+        "200":
+          description: Personal sealed wish list with current simulated prices and 30-day history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SealedWishListEntry"
+        "401":
+          description: Sign-in required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /sealed-wish-list/{sealedProductId}:
+    parameters:
+      - in: path
+        name: sealedProductId
+        required: true
+        schema: { type: string, minLength: 1 }
+    post:
+      operationId: addSealedWishListItem
+      tags: [wish-list]
+      summary: Add a sealed product to the signed-in user's wish list
+      responses:
+        "201":
+          description: Sealed product added to the wish list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SealedWishListEntry"
+        "401":
+          description: Sign-in required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Sealed product not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    patch:
+      operationId: updateSealedWishListTarget
+      tags: [wish-list]
+      summary: Set or clear a target price for a wished-for sealed product
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WishListTargetUpdate"
+      responses:
+        "200":
+          description: Updated sealed wish list entry
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SealedWishListEntry"
+        "400":
+          description: Invalid target price
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Sign-in required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Sealed product is not on the signed-in user's wish list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    delete:
+      operationId: removeSealedWishListItem
+      tags: [wish-list]
+      summary: Remove a sealed product from the signed-in user's wish list
+      responses:
+        "204":
+          description: Sealed product removed from the wish list
+        "401":
+          description: Sign-in required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /sealed-binder:
+    get:
+      operationId: listSealedBinderEntries
+      tags: [binder]
+      summary: List the signed-in user's sealed binder entries
+      responses:
+        "200":
+          description: Personal sealed binder entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SealedBinderEntry"
+        "401":
+          description: Sign-in required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /sealed-binder/{sealedProductId}:
+    parameters:
+      - in: path
+        name: sealedProductId
+        required: true
+        schema: { type: string, minLength: 1 }
+    post:
+      operationId: addSealedBinderEntry
+      tags: [binder]
+      summary: Add one sealed product to the signed-in user's binder
+      responses:
+        "201":
+          description: Sealed binder entry created or quantity increased
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SealedBinderEntry"
+        "401":
+          description: Sign-in required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Sealed product not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    patch:
+      operationId: updateSealedBinderEntry
+      tags: [binder]
+      summary: Update a sealed binder quantity
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SealedBinderQuantityUpdate"
+      responses:
+        "200":
+          description: Updated sealed binder entry
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SealedBinderEntry"
+        "400":
+          description: Invalid quantity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Sign-in required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Sealed product is not in the signed-in user's binder
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    delete:
+      operationId: removeSealedBinderEntry
+      tags: [binder]
+      summary: Remove a sealed product from the signed-in user's binder
+      responses:
+        "204":
+          description: Sealed binder entry removed
+        "401":
+          description: Sign-in required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
   /binder/settings:
     get:
       operationId: getBinderSettings
@@ -625,6 +849,46 @@ components:
         day: { type: string }
         value: { type: number }
       required: [day, value]
+    SealedProduct:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        setName: { type: string }
+        setReleaseYear: { type: integer }
+        productType: { type: string, enum: [Booster Pack, ETB] }
+        basePrice: { type: number }
+        trendPercent: { type: number }
+        isWishListed: { type: boolean }
+        binderQuantity: { type: integer }
+      required: [id, name, setName, setReleaseYear, productType, basePrice, trendPercent, isWishListed, binderQuantity]
+    SealedWishListEntry:
+      type: object
+      properties:
+        sealedProductId: { type: string }
+        targetPrice: { type: ["number", "null"], minimum: 0 }
+        product: { $ref: "#/components/schemas/SealedProduct" }
+        history:
+          type: array
+          description: Available simulated daily prices within the last 30 UTC calendar days, including today, ordered oldest first. May be empty or incomplete; independent of the current base price.
+          maxItems: 30
+          items: { $ref: "#/components/schemas/PricePoint" }
+      required: [sealedProductId, targetPrice, product, history]
+    SealedBinderEntry:
+      type: object
+      properties:
+        id: { type: integer }
+        sealedProductId: { type: string }
+        quantity: { type: integer }
+        notes: { type: string }
+        product: { $ref: "#/components/schemas/SealedProduct" }
+        totalValue: { type: number }
+      required: [id, sealedProductId, quantity, notes, product, totalValue]
+    SealedBinderQuantityUpdate:
+      type: object
+      properties:
+        quantity: { type: integer, minimum: 1 }
+      required: [quantity]
     Card:
       type: object
       properties:
