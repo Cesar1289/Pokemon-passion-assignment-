@@ -857,11 +857,12 @@ components:
         setName: { type: string }
         setReleaseYear: { type: integer }
         productType: { type: string, enum: [Booster Pack, ETB] }
+        imageUrl: { type: string }
         basePrice: { type: number }
         trendPercent: { type: number }
         isWishListed: { type: boolean }
         binderQuantity: { type: integer }
-      required: [id, name, setName, setReleaseYear, productType, basePrice, trendPercent, isWishListed, binderQuantity]
+      required: [id, name, setName, setReleaseYear, productType, imageUrl, basePrice, trendPercent, isWishListed, binderQuantity]
     SealedWishListEntry:
       type: object
       properties:

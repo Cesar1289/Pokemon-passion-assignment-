@@ -8,6 +8,7 @@ export const sealedProductsTable = pgTable("sealed_products", {
   setName: text("set_name").notNull(),
   setReleaseYear: integer("set_release_year").notNull(),
   productType: text("product_type").notNull(),
+  imageUrl: text("image_url").notNull().default("/artwork-unavailable.svg"),
   basePrice: real("base_price").notNull(),
 });
 

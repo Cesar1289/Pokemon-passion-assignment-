@@ -67,6 +67,7 @@ export interface SealedProduct {
   setName: string;
   setReleaseYear: number;
   productType: SealedProductProductType;
+  imageUrl: string;
   basePrice: number;
   trendPercent: number;
   isWishListed: boolean;

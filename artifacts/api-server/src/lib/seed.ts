@@ -59,7 +59,7 @@ const seedCards: SeedCard[] = [
     type: "Lightning",
     year: 1998,
     artist: "Atsuko Nishida",
-    imageUrl: "/artwork-unavailable.svg",
+    imageUrl: "/card-artwork/pikachu-illustrator.webp",
     marketPrice: 900000,
     authenticationTip: [
       "Never buy this raw (ungraded): with fewer than 40 real copies, only trust PSA/CGC/BGS-graded examples with provenance.",
@@ -305,7 +305,7 @@ const seedCards: SeedCard[] = [
     type: "Psychic",
     year: 2023,
     artist: "Mizue",
-    imageUrl: "/artwork-unavailable.svg",
+    imageUrl: "/card-artwork/ralts.webp",
     marketPrice: 0.2,
     authenticationTip: fillerAuthenticationTip,
     tags: ["Ralts", "Common"],
@@ -320,7 +320,7 @@ const seedCards: SeedCard[] = [
     type: "Dragon",
     year: 2023,
     artist: "Mitsuhiro Arita",
-    imageUrl: "/artwork-unavailable.svg",
+    imageUrl: "/card-artwork/garchomp.webp",
     marketPrice: 0.5,
     authenticationTip: fillerAuthenticationTip,
     tags: ["Garchomp", "Uncommon"],
@@ -335,7 +335,7 @@ const seedCards: SeedCard[] = [
     type: "Colorless",
     year: 2023,
     artist: "Mitsuhiro Arita",
-    imageUrl: "/artwork-unavailable.svg",
+    imageUrl: "/card-artwork/noctowl.webp",
     marketPrice: 0.08,
     authenticationTip: fillerAuthenticationTip,
     tags: ["Noctowl", "Common"],
@@ -370,22 +370,23 @@ type SeedSealedProduct = {
   setName: string;
   setReleaseYear: number;
   productType: "Booster Pack" | "ETB";
+  imageUrl: string;
   basePrice: number;
 };
 
 const seedSealedProducts: SeedSealedProduct[] = [
-  { id: "S1", name: "Booster Pack", setName: "Scarlet & Violet 151", setReleaseYear: 2023, productType: "Booster Pack", basePrice: 6.5 },
-  { id: "S2", name: "Elite Trainer Box", setName: "Scarlet & Violet 151", setReleaseYear: 2023, productType: "ETB", basePrice: 65 },
-  { id: "S3", name: "Booster Pack", setName: "Evolving Skies", setReleaseYear: 2021, productType: "Booster Pack", basePrice: 14 },
-  { id: "S4", name: "Elite Trainer Box", setName: "Evolving Skies", setReleaseYear: 2021, productType: "ETB", basePrice: 95 },
-  { id: "S5", name: "Booster Pack", setName: "Obsidian Flames", setReleaseYear: 2023, productType: "Booster Pack", basePrice: 5 },
-  { id: "S6", name: "Elite Trainer Box", setName: "Obsidian Flames", setReleaseYear: 2023, productType: "ETB", basePrice: 45 },
-  { id: "S7", name: "Booster Pack", setName: "Paldean Fates", setReleaseYear: 2024, productType: "Booster Pack", basePrice: 6 },
-  { id: "S8", name: "Elite Trainer Box", setName: "Paldean Fates", setReleaseYear: 2024, productType: "ETB", basePrice: 55 },
-  { id: "S9", name: "Booster Pack", setName: "Crown Zenith", setReleaseYear: 2023, productType: "Booster Pack", basePrice: 9 },
-  { id: "S10", name: "Elite Trainer Box", setName: "Crown Zenith", setReleaseYear: 2023, productType: "ETB", basePrice: 70 },
-  { id: "S11", name: "Booster Pack (1st Ed)", setName: "Base Set, 1999", setReleaseYear: 1999, productType: "Booster Pack", basePrice: 450 },
-  { id: "S12", name: "Booster Pack (1st Ed)", setName: "Neo Genesis, 2000", setReleaseYear: 2000, productType: "Booster Pack", basePrice: 550 },
+  { id: "S1", name: "Booster Pack", setName: "Scarlet & Violet 151", setReleaseYear: 2023, productType: "Booster Pack", imageUrl: "/sealed-products/s1-151-pack.webp", basePrice: 6.5 },
+  { id: "S2", name: "Elite Trainer Box", setName: "Scarlet & Violet 151", setReleaseYear: 2023, productType: "ETB", imageUrl: "/sealed-products/s2-151-etb.webp", basePrice: 65 },
+  { id: "S3", name: "Booster Pack", setName: "Evolving Skies", setReleaseYear: 2021, productType: "Booster Pack", imageUrl: "/sealed-products/s3-evolving-skies-pack.webp", basePrice: 14 },
+  { id: "S4", name: "Elite Trainer Box", setName: "Evolving Skies", setReleaseYear: 2021, productType: "ETB", imageUrl: "/sealed-products/s4-evolving-skies-etb.webp", basePrice: 95 },
+  { id: "S5", name: "Booster Pack", setName: "Obsidian Flames", setReleaseYear: 2023, productType: "Booster Pack", imageUrl: "/sealed-products/s5-obsidian-flames-pack.webp", basePrice: 5 },
+  { id: "S6", name: "Elite Trainer Box", setName: "Obsidian Flames", setReleaseYear: 2023, productType: "ETB", imageUrl: "/sealed-products/s6-obsidian-flames-etb.webp", basePrice: 45 },
+  { id: "S7", name: "Booster Pack", setName: "Paldean Fates", setReleaseYear: 2024, productType: "Booster Pack", imageUrl: "/sealed-products/s7-paldean-fates-pack.webp", basePrice: 6 },
+  { id: "S8", name: "Elite Trainer Box", setName: "Paldean Fates", setReleaseYear: 2024, productType: "ETB", imageUrl: "/sealed-products/s8-paldean-fates-etb.webp", basePrice: 55 },
+  { id: "S9", name: "Booster Pack", setName: "Crown Zenith", setReleaseYear: 2023, productType: "Booster Pack", imageUrl: "/sealed-products/s9-crown-zenith-pack.webp", basePrice: 9 },
+  { id: "S10", name: "Elite Trainer Box", setName: "Crown Zenith", setReleaseYear: 2023, productType: "ETB", imageUrl: "/sealed-products/s10-crown-zenith-etb.webp", basePrice: 70 },
+  { id: "S11", name: "Booster Pack (1st Ed)", setName: "Base Set, 1999", setReleaseYear: 1999, productType: "Booster Pack", imageUrl: "/sealed-products/s11-base-set-1st-edition-pack.webp", basePrice: 450 },
+  { id: "S12", name: "Booster Pack (1st Ed)", setName: "Neo Genesis, 2000", setReleaseYear: 2000, productType: "Booster Pack", imageUrl: "/sealed-products/s12-neo-genesis-1st-edition-pack.webp", basePrice: 550 },
 ];
 
 /**
@@ -523,6 +524,7 @@ export async function seedCatalog(): Promise<void> {
           setName: sql`excluded.set_name`,
           setReleaseYear: sql`excluded.set_release_year`,
           productType: sql`excluded.product_type`,
+          imageUrl: sql`excluded.image_url`,
           basePrice: sql`excluded.base_price`,
         },
       });
