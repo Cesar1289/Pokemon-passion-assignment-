@@ -118,6 +118,16 @@ A Pokémon TCG web app for collectors, traders, and competitive players. Version
 - **Community Binders** with opt-in public sharing and a hide-portfolio-total option
 - **Wish List** (built Nov 2026): tab inside the Binder, add from Card Detail or Directory tiles, wish-list value total
 
+## 8c. Feature Roadmap (queued, build one at a time)
+
+Build in this order after the Wish List; test each before starting the next:
+1. **Cost basis & gains/losses** — optional "paid price" on binder entries, Gain/Loss column (green ▲ / red ▼ with %), invested-total summary tile
+2. **Trending section** on Home — "Biggest Cards in the archive" next to Top 10 Movers
+3. **Saved trades** — Trade Lab saves past analyses; review them later
+4. **Scan Station** — camera viewfinder (getUserMedia) with card-frame overlay, manual card match (labeled "Beta: manual match"), popup with raw price, simulated PSA 10 graded price, graded premium, pop report counts, and 30-day chart
+5. **Price alerts** — "notify me below $X" per card, shown in a notification center
+6. **Likes on Community Binders** — ❤️ reaction button on public binder showcases
+
 ## 9. Responsive Design
 
 - **Mobile (under 600px):** single-column layout, hamburger navbar, 1–2 cards per row, stacked trade comparison.
