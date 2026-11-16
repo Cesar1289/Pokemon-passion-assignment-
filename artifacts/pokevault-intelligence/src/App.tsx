@@ -23,6 +23,7 @@ import {
 import NotFound from '@/pages/not-found';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { WishListTrend } from '@/components/wish-list-trend';
+import { sortWishListItems, type WishListSortOrder } from '@/lib/wish-list-trend';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
 
@@ -372,6 +373,7 @@ function Modal({ title, children, onClose }: { title: string; children: ReactNod
 
 function BinderPage({ user }: { user: { username: string } | null }) {
   const [activeTab, setActiveTab] = useState<'collection' | 'wish-list'>('collection');
+  const [wishListSort, setWishListSort] = useState<WishListSortOrder>('trend_drop');
   const query = useListBinderEntries({ query: { enabled: !!user, queryKey: getListBinderEntriesQueryKey() }, request: cookieRequest });
   const settingsQuery = useGetBinderSettings({ query: { enabled: !!user, queryKey: getGetBinderSettingsQueryKey() }, request: cookieRequest });
   const wishListQuery = useListWishList({
@@ -385,6 +387,16 @@ function BinderPage({ user }: { user: { username: string } | null }) {
   const entries = query.data ?? [];
   const wishListItems = wishListQuery.data ?? [];
   const wishListValue = wishListItems.reduce((sum, item) => sum + item.card.marketPrice, 0);
+  const wishListSortLabels = {
+    trend_drop: 'Biggest 30-day drops',
+    trend_gain: 'Biggest 30-day gains',
+    price_high: 'Highest current price',
+    price_low: 'Lowest current price',
+  } as const;
+  const sortedWishListItems = useMemo(
+    () => sortWishListItems(wishListItems, wishListSort),
+    [wishListItems, wishListSort],
+  );
   const [editing, setEditing] = useState<BinderEntry | null>(null);
   const [editCondition, setEditCondition] = useState('');
   const [editQuantity, setEditQuantity] = useState(1);
@@ -437,8 +449,12 @@ function BinderPage({ user }: { user: { username: string } | null }) {
         <div className="binder-list"><div className="binder-list-heading"><span>CARD / SET</span><span>CONDITION</span><span>QTY.</span><span>EST. VALUE</span><span>TOOLS</span></div>{entries.map((entry) => <article className="binder-row" key={entry.id} data-testid={`binder-entry-${entry.id}`}><Link href={`/cards/${encodeURIComponent(entry.cardId)}`} className="binder-card"><CardArtwork src={entry.card.imageUrl} alt="" /><span><strong>{entry.card.name}</strong><small>{entry.card.setName} · {entry.card.number}</small></span></Link><span className="condition-pill">{entry.condition}</span><span className="binder-qty">{entry.quantity}</span><strong className="binder-value">{money(entry.totalValue)}</strong><div className="row-actions"><button className="icon-button" onClick={() => editEntry(entry)} aria-label={`Edit ${entry.card.name}`} data-testid={`button-edit-entry-${entry.id}`}><SlidersHorizontal size={15} /></button><button className="icon-button danger-icon" onClick={() => setRemoving(entry)} aria-label={`Remove ${entry.card.name}`} data-testid={`button-remove-entry-${entry.id}`}><X size={16} /></button></div>{entry.notes && <p className="binder-note"><Bookmark size={12} /> {entry.notes}</p>}</article>)}</div>}
     </div> : <section id="panel-wish-list" role="tabpanel" aria-labelledby="tab-wish-list" className="wish-list-view">
       <div className="wish-list-summary"><div><span className="stat-label">WISH LIST VALUE</span><strong data-testid="text-wish-list-value">{wishListQuery.isLoading ? '…' : money(wishListValue)}</strong><small>{wishListItems.length} {wishListItems.length === 1 ? 'card' : 'cards'} on the hunt</small></div><div className="wish-list-summary-note"><Heart size={20} /><p>Keep an eye on the cards you hope to find. Values use the current simulated market price.</p></div></div>
+       {!wishListQuery.isLoading && !wishListQuery.isError && wishListItems.length > 0 && <div className="wish-list-toolbar">
+         <label className="select-control"><SlidersHorizontal size={15} /><span>Sort Wish List</span><select value={wishListSort} onChange={(event) => setWishListSort(event.target.value as typeof wishListSort)} aria-label="Sort Wish List" data-testid="select-wish-list-sort"><option value="trend_drop">Biggest 30-day drops</option><option value="trend_gain">Biggest 30-day gains</option><option value="price_high">Highest current price</option><option value="price_low">Lowest current price</option></select><ChevronDown size={14} /></label>
+         <span className="wish-list-sort-status" aria-live="polite">ORDER: {wishListSortLabels[wishListSort].toUpperCase()}</span>
+       </div>}
       {wishListQuery.isLoading ? <div className="wish-list-skeleton" aria-label="Loading Wish List"><div className="skeleton skeleton-art" /><div className="skeleton skeleton-line" /></div> : wishListQuery.isError ? <QueryError error={wishListQuery.error} retry={() => wishListQuery.refetch()} /> : !wishListItems.length ? <div className="empty-state wish-list-empty" data-testid="status-wish-list-empty"><div className="empty-icon"><Heart /></div><span className="section-kicker">THE NEXT CHASE</span><h3>Your wish list is empty — hunt some cards!</h3><p>Save the cards you’re looking for and keep their current simulated value close.</p><Link href="/cards" className="button button-solid">Browse the card index <ArrowRight size={15} /></Link></div> :
-        <div className="wish-list-grid">{wishListItems.map((item) => <article className="wish-list-card" key={item.cardId} data-testid={`wish-list-card-${item.cardId}`}>
+         <div className="wish-list-grid">{sortedWishListItems.map((item) => <article className="wish-list-card" key={item.cardId} data-testid={`wish-list-card-${item.cardId}`}>
           <Link href={`/cards/${encodeURIComponent(item.cardId)}`} className="wish-list-card-link"><CardArtwork src={item.card.imageUrl} alt={`${item.card.name} card artwork`} /><span><strong>{item.card.name}</strong><small>{item.card.setName} · {item.card.number}</small></span></Link>
           <div className="wish-list-price"><span>CURRENT SIMULATED PRICE</span><strong>{money(item.card.marketPrice)}</strong><WishListTrend history={item.history} cardName={item.card.name} /></div>
           <button className="button button-outline wish-list-remove" onClick={() => removeWishListItem.mutate({ cardId: item.cardId })} disabled={removeWishListItem.isPending} aria-label={`Remove ${item.card.name} from Wish List`} data-testid={`button-remove-wish-list-${item.cardId}`}><X size={14} /> Remove</button>
