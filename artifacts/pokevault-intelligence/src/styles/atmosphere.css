@@ -1,0 +1,204 @@
+/* PokeVault atmosphere: archival navy, restrained light, and accessible motion. */
+.hero-panel,
+.community-hero,
+.auth-art {
+  background-color:#0A1E3C;
+  background-image:linear-gradient(132deg,#0A1E3C 0%,#10294d 54%,#091a35 100%);
+}
+
+.hero-panel::before,
+.community-hero::before,
+.auth-art::before {
+  content:"";
+  position:absolute;
+  inset:0;
+  z-index:0;
+  pointer-events:none;
+  opacity:.42;
+  background-image:radial-gradient(circle,rgba(238,244,255,.4) .8px,transparent 1px);
+  background-size:22px 22px;
+}
+
+.hero-panel::after,
+.community-hero::after,
+.auth-art::after {
+  content:"";
+  position:absolute;
+  z-index:1;
+  top:50%;
+  right:5%;
+  width:min(43%,440px);
+  aspect-ratio:1;
+  pointer-events:none;
+  transform:translateY(-50%);
+  background:linear-gradient(135deg,#FFCB05,#EEF4FF);
+  opacity:.05;
+  -webkit-mask:url("/hero-vault-watermark.svg") center / contain no-repeat;
+  mask:url("/hero-vault-watermark.svg") center / contain no-repeat;
+}
+
+.community-hero::after { right:7%; width:min(38%,360px); }
+.auth-art::after { top:43%; right:7%; width:min(58vw,520px); }
+.hero-content,.community-hero-copy,.auth-art-copy { position:relative; z-index:2; }
+.hero-orbit,.hero-index,.community-orbit,.auth-orbit,.auth-brand,.auth-art-foot { z-index:2; }
+
+.home-hero-glows {
+  position:absolute;
+  z-index:1;
+  inset:0;
+  overflow:hidden;
+  pointer-events:none;
+}
+
+.home-hero-glow {
+  position:absolute;
+  width:clamp(210px,30vw,390px);
+  aspect-ratio:1;
+  border-radius:50%;
+  filter:blur(67px);
+  opacity:.23;
+  will-change:transform;
+}
+
+.home-hero-glow-red {
+  top:-54%;
+  left:49%;
+  background:radial-gradient(circle,rgba(238,21,21,.72) 0%,rgba(238,21,21,0) 69%);
+  animation:hero-glow-drift-red 23s ease-in-out infinite alternate;
+}
+
+.home-hero-glow-yellow {
+  right:7%;
+  bottom:-76%;
+  width:clamp(190px,24vw,320px);
+  background:radial-gradient(circle,rgba(255,203,5,.7) 0%,rgba(255,203,5,0) 70%);
+  animation:hero-glow-drift-yellow 28s ease-in-out infinite alternate;
+}
+
+@keyframes hero-glow-drift-red {
+  from { transform:translate3d(-10px,4px,0) scale(.92); }
+  to { transform:translate3d(42px,24px,0) scale(1.08); }
+}
+
+@keyframes hero-glow-drift-yellow {
+  from { transform:translate3d(12px,-8px,0) scale(1.02); }
+  to { transform:translate3d(-34px,-25px,0) scale(.9); }
+}
+
+.market-cell { background-image:radial-gradient(ellipse at 100% 100%,rgba(238,21,21,.085),transparent 68%); }
+.market-cell:nth-child(2) { background-image:radial-gradient(ellipse at 100% 100%,rgba(255,203,5,.12),transparent 68%); }
+.market-cell:nth-child(3) { background-image:radial-gradient(ellipse at 100% 100%,rgba(46,204,113,.09),transparent 68%); }
+.market-cell:nth-child(4) { background-image:radial-gradient(ellipse at 100% 100%,rgba(255,203,5,.09),transparent 68%); }
+
+/* The current binder surfaces its portfolio total in the value summary tile. */
+.binder-summary>div:nth-child(2) {
+  position:relative;
+  isolation:isolate;
+  overflow:hidden;
+}
+
+.binder-summary>div:nth-child(2)::before {
+  content:"";
+  position:absolute;
+  z-index:-1;
+  inset:0;
+  pointer-events:none;
+  background:
+    radial-gradient(ellipse at 93% 13%,rgba(255,203,5,.16),transparent 57%),
+    radial-gradient(ellipse at 9% 100%,rgba(238,21,21,.08),transparent 56%);
+}
+
+.card-tile-holo { --holo-intensity:.72; }
+.dark .card-tile-holo { --holo-intensity:.34; }
+
+.card-tile-holo .tile-art-wrap::after {
+  content:"";
+  position:absolute;
+  z-index:2;
+  top:-48%;
+  bottom:-48%;
+  left:-64%;
+  width:43%;
+  pointer-events:none;
+  opacity:0;
+  transform:translateX(-110%) skewX(-18deg);
+  background:linear-gradient(112deg,
+    transparent 0%,
+    rgba(255,75,130,.12) 18%,
+    rgba(255,203,5,.32) 33%,
+    rgba(63,226,218,.24) 48%,
+    rgba(128,119,255,.25) 64%,
+    transparent 83%);
+  mix-blend-mode:screen;
+}
+
+.card-tile-holo .card-serial,
+.card-tile-holo .tile-rarity,
+.card-tile-holo .artwork-reference-label { z-index:3; }
+
+.card-tile-holo:hover .tile-art-wrap::after,
+.card-tile-holo:focus-within .tile-art-wrap::after {
+  animation:card-holo-sweep 1.08s cubic-bezier(.2,.68,.25,1) both;
+}
+
+@keyframes card-holo-sweep {
+  0% { opacity:0; transform:translateX(-110%) skewX(-18deg); }
+  18% { opacity:var(--holo-intensity); }
+  78% { opacity:var(--holo-intensity); }
+  100% { opacity:0; transform:translateX(420%) skewX(-18deg); }
+}
+
+.app-footer {
+  position:relative;
+  border-top:0;
+}
+
+.app-footer::before {
+  content:"";
+  position:absolute;
+  top:0;
+  left:0;
+  right:0;
+  height:1px;
+  pointer-events:none;
+  background:linear-gradient(90deg,transparent 0%,rgba(238,21,21,.72) 28%,rgba(255,203,5,.78) 72%,transparent 100%);
+  opacity:.72;
+}
+
+.dark .hero-panel::before,
+.dark .community-hero::before,
+.dark .auth-art::before { opacity:.42; }
+
+.dark .market-cell { background-image:radial-gradient(ellipse at 100% 100%,rgba(238,21,21,.15),transparent 68%); }
+.dark .market-cell:nth-child(2) { background-image:radial-gradient(ellipse at 100% 100%,rgba(255,203,5,.18),transparent 68%); }
+.dark .market-cell:nth-child(3) { background-image:radial-gradient(ellipse at 100% 100%,rgba(46,204,113,.13),transparent 68%); }
+.dark .market-cell:nth-child(4) { background-image:radial-gradient(ellipse at 100% 100%,rgba(255,203,5,.14),transparent 68%); }
+.dark .binder-summary>div:nth-child(2)::before {
+  background:
+    radial-gradient(ellipse at 93% 13%,rgba(255,203,5,.2),transparent 57%),
+    radial-gradient(ellipse at 9% 100%,rgba(238,21,21,.11),transparent 56%);
+}
+
+:root:not(.dark) .hero-panel::before,
+:root:not(.dark) .community-hero::before,
+:root:not(.dark) .auth-art::before { opacity:.26; }
+
+:root:not(.dark) .hero-panel::after,
+:root:not(.dark) .community-hero::after,
+:root:not(.dark) .auth-art::after { opacity:.03; }
+
+:root:not(.dark) .home-hero-glow { opacity:.15; }
+:root:not(.dark) .card-tile-holo { --holo-intensity:.56; }
+
+@media (max-width:760px) {
+  .hero-panel::after { right:-13%; width:min(55%,300px); }
+  .community-hero::after { right:-12%; width:min(50%,270px); }
+  .auth-art::after { top:45%; right:-9%; width:min(75vw,320px); }
+  .home-hero-glow-red { top:-25%; left:48%; }
+  .home-hero-glow-yellow { right:-5%; bottom:-65%; }
+}
+
+@media (prefers-reduced-motion:reduce) {
+  .home-hero-glows { display:none; }
+  .card-tile-holo .tile-art-wrap::after { display:none; animation:none!important; }
+}

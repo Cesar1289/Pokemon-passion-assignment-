@@ -47,6 +47,11 @@ const pct = (value: number) => `${value > 0 ? '+' : ''}${value.toFixed(1)}%`;
 const failureMessage = (error: unknown) => error instanceof Error ? error.message : 'Something went wrong. Please try again.';
 const referenceArtworkCardIds = new Set(['swsh12pt5-60', 'sv1-109', 'sv1-151']);
 const hasReferenceArtwork = (cardId: string) => referenceArtworkCardIds.has(cardId);
+const isRareOrHigher = (rarity: string) => {
+  const normalized = rarity.toLowerCase();
+  return !/common|uncommon/.test(normalized)
+    && /rare|holo|promo|secret|illustration|gold star|ultra|rainbow|radiant|amazing/.test(normalized);
+};
 function getSavedWishListSort(): WishListSortOrder {
   try {
     const saved = window.localStorage.getItem(WISH_LIST_SORT_STORAGE_KEY);
@@ -194,7 +199,7 @@ function CardTile({ card, user, onFavorite, onWishList }: {
   onFavorite?: (card: Card) => void;
   onWishList: (card: Card) => void;
 }) {
-  return <article className="card-tile" data-testid={`card-catalog-${card.id}`}>
+  return <article className={`card-tile ${isRareOrHigher(card.rarity) ? 'card-tile-holo' : ''}`} data-testid={`card-catalog-${card.id}`}>
     <Link href={`/cards/${encodeURIComponent(card.id)}`} className="tile-image-link" aria-label={`View ${card.name}`}>
       <div className="tile-art-wrap"><span className="card-serial">{card.number}</span>{hasReferenceArtwork(card.id) && <span className="artwork-reference-label">REFERENCE ART</span>}<CardArtwork className="card-art" src={card.imageUrl} alt={`${card.name} trading card${hasReferenceArtwork(card.id) ? ' reference artwork' : ''}`} /><span className="tile-rarity">{card.rarity}</span></div>
     </Link>
@@ -334,6 +339,7 @@ function HomePage({ user }: { user: { username: string } | null }) {
   const trendValue = movers.reduce((total, card) => total + card.trendPercent, 0) / (movers.length || 1);
   return <div className="home-page">
     <section className="hero-panel">
+      <div className="home-hero-glows" aria-hidden="true"><span className="home-hero-glow home-hero-glow-red" /><span className="home-hero-glow home-hero-glow-yellow" /></div>
       <div className="hero-content">
         <div className="eyebrow"><span className="eyebrow-line" />THE COLLECTOR’S FIELD GUIDE <span className="eyebrow-count">VOL. 01</span></div>
         <h1>Every card has<br /><em>a story.</em></h1>
