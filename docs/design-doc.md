@@ -127,6 +127,9 @@ Build in this order after the Wish List; test each before starting the next:
 4. **Scan Station** — camera viewfinder (getUserMedia) with card-frame overlay, manual card match (labeled "Beta: manual match"), popup with raw price, simulated PSA 10 graded price, graded premium, pop report counts, and 30-day chart
 5. **Price alerts** — "notify me below $X" per card, shown in a notification center
 6. **Likes on Community Binders** — ❤️ reaction button on public binder showcases
+7. **Pack opening simulator** — "open" a sealed booster from the Sealed tab: random cards pulled by rarity odds (Common 60% / Uncommon 25% / Rare 10% / Holo+ 5%), fun reveal animation, pulls addable to binder; show "expected value per pack" from simulated prices
+8. **Share button** — copy-link button on Card Detail and public binder showcases (uses the browser clipboard API with a success toast)
+9. **Poll widget** — rotating community poll on Home ("Best alt art: Moonbreon vs Gengar VMAX?"), one vote per logged-in user, live results bar
 
 ## 9. Responsive Design
 
