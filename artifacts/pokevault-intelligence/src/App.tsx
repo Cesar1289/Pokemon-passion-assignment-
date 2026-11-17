@@ -4,7 +4,7 @@ import { Link, Route, Switch, useLocation, useRoute } from 'wouter';
 import {
   Activity, ArrowDownRight, ArrowLeft, ArrowRight, ArrowUpRight, BadgeCheck, BookOpen,
   Bookmark, Check, ChevronDown, CircleHelp, Clock3, Command, Compass, Download, Eye, EyeOff, Gem, Heart,
-  Layers3, LogIn, LogOut, Menu, Minus, Moon, Plus, Search, ShieldCheck, SlidersHorizontal,
+  Layers3, LogIn, LogOut, Menu, Minus, Moon, PackageOpen, Plus, Search, ShieldCheck, SlidersHorizontal,
   Sparkles, Sun, Swords, Users, X,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -30,6 +30,7 @@ import NotFound from '@/pages/not-found';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { WishListTrend } from '@/components/wish-list-trend';
 import { CardScannerEntry } from '@/components/card-scanner';
+import { PackOpeningSimulator } from '@/components/pack-opening-simulator';
 import { sortWishListItems, type WishListSortOrder } from '@/lib/wish-list-trend';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -218,11 +219,13 @@ function CatalogGrid({ cards, user, onFavorite, onWishList }: {
   return <div className="card-grid">{cards.map((card) => <CardTile key={card.id} card={card} user={user} onFavorite={onFavorite} onWishList={onWishList} />)}</div>;
 }
 
-function SealedProductTile({ product, user, onAddToBinder, onAddToWishList }: {
+function SealedProductTile({ product, user, onAddToBinder, onAddToWishList, onOpenPack, canOpenPack }: {
   product: SealedProduct;
   user: { username: string } | null;
   onAddToBinder: (product: SealedProduct) => void;
   onAddToWishList: (product: SealedProduct) => void;
+  onOpenPack: (product: SealedProduct) => void;
+  canOpenPack: boolean;
 }) {
   const setLabel = product.setName.includes(String(product.setReleaseYear))
     ? product.setName
@@ -254,18 +257,23 @@ function SealedProductTile({ product, user, onAddToBinder, onAddToWishList }: {
           <WishListMark added={product.isWishListed} />
         </button>
       </div>
+      {product.productType === 'Booster Pack' && <button className="button button-warm sealed-open-pack" onClick={() => onOpenPack(product)} disabled={!canOpenPack} aria-label={`Open a ${product.name} in the pack simulator`} data-testid={`button-open-pack-${product.id}`}>
+        <PackageOpen size={14} /> {canOpenPack ? 'Open a pack' : 'Loading card catalog…'}
+      </button>}
     </div>
   </article>;
 }
 
-function SealedProductGrid({ products, user, onAddToBinder, onAddToWishList }: {
+function SealedProductGrid({ products, user, onAddToBinder, onAddToWishList, onOpenPack, canOpenPack }: {
   products: SealedProduct[];
   user: { username: string } | null;
   onAddToBinder: (product: SealedProduct) => void;
   onAddToWishList: (product: SealedProduct) => void;
+  onOpenPack: (product: SealedProduct) => void;
+  canOpenPack: boolean;
 }) {
   if (!products.length) return <div className="empty-state"><div className="empty-icon"><Layers3 /></div><h3>No sealed products found</h3><p>Try another search or choose a different product type.</p></div>;
-  return <div className="card-grid sealed-grid">{products.map((product) => <SealedProductTile key={product.id} product={product} user={user} onAddToBinder={onAddToBinder} onAddToWishList={onAddToWishList} />)}</div>;
+  return <div className="card-grid sealed-grid">{products.map((product) => <SealedProductTile key={product.id} product={product} user={user} onAddToBinder={onAddToBinder} onAddToWishList={onAddToWishList} onOpenPack={onOpenPack} canOpenPack={canOpenPack} />)}</div>;
 }
 
 function useFavoriteAction(user: { username: string } | null) {
@@ -407,6 +415,7 @@ function exportBinderCsv(entries: BinderEntry[], sealedEntries: SealedBinderEntr
 function CardsPage({ user }: { user: { username: string } | null }) {
   const [, setLocation] = useLocation();
   const cache = useQueryClient();
+  const [activePack, setActivePack] = useState<SealedProduct | null>(null);
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState<'name' | 'price_asc' | 'price_desc'>('name');
   const [catalogView, setCatalogView] = useState<'cards' | 'sealed'>('cards');
@@ -444,6 +453,21 @@ function CardsPage({ user }: { user: { username: string } | null }) {
     cache.invalidateQueries({ queryKey: getListSealedWishListQueryKey() });
     toast.success('Added to your Wish List.');
   }, onError: (error) => toast.error(failureMessage(error)) } });
+  const addPackPullBinder = useCreateBinderEntry({ request: cookieRequest, mutation: {
+    onSuccess: () => {
+      cache.invalidateQueries({ queryKey: getListBinderEntriesQueryKey() });
+      cache.invalidateQueries({ queryKey: getGetDashboardQueryKey() });
+      toast.success('Simulated pack pull added to your binder.');
+    },
+    onError: (error) => toast.error(failureMessage(error)),
+  } });
+  const addPackPullWishList = useAddWishListItem({ request: cookieRequest, mutation: {
+    onSuccess: () => {
+      refreshWishListViews(cache);
+      toast.success('Added to your Wish List.');
+    },
+    onError: (error) => toast.error(failureMessage(error)),
+  } });
   const addSealedToBinder = (product: SealedProduct) => {
     if (!user) { setLocation('/login'); return; }
     addSealedBinder.mutate({ sealedProductId: product.id });
@@ -451,6 +475,21 @@ function CardsPage({ user }: { user: { username: string } | null }) {
   const addSealedToWishList = (product: SealedProduct) => {
     if (!user) { setLocation('/login'); return; }
     if (!product.isWishListed) addSealedWishList.mutate({ sealedProductId: product.id });
+  };
+  const addPullToBinder = async (card: Card, product: SealedProduct) => {
+    if (!user) { setLocation('/login'); return; }
+    await addPackPullBinder.mutateAsync({
+      data: {
+        cardId: card.id,
+        condition: BinderEntryInputCondition.Near_Mint,
+        quantity: 1,
+        notes: `Simulated pack pull: ${product.name}`,
+      },
+    });
+  };
+  const addPullToWishList = async (card: Card) => {
+    if (!user) { setLocation('/login'); return; }
+    if (!card.isWishListed) await addPackPullWishList.mutateAsync({ cardId: card.id });
   };
   const currentType = typeFilter.length === 1 ? typeFilter[0] : '';
   return <section className="catalog-page">
@@ -480,8 +519,9 @@ function CardsPage({ user }: { user: { username: string } | null }) {
       ].map(({ value, label }) => <button key={value} className={sealedFilter === value ? 'sealed-filter-chip sealed-filter-active' : 'sealed-filter-chip'} aria-pressed={sealedFilter === value} onClick={() => setSealedFilter(value as typeof sealedFilter)} data-testid={`filter-sealed-${value.toLowerCase().replaceAll(' ', '-')}`}>{label}</button>)}
     </div>}
     {catalogView === 'sealed'
-      ? sealedResult.isLoading ? <SkeletonGrid /> : sealedResult.isError ? <QueryError error={sealedResult.error} retry={() => sealedResult.refetch()} /> : <SealedProductGrid products={sealedResult.data ?? []} user={user} onAddToBinder={addSealedToBinder} onAddToWishList={addSealedToWishList} />
+      ? sealedResult.isLoading ? <SkeletonGrid /> : sealedResult.isError ? <QueryError error={sealedResult.error} retry={() => sealedResult.refetch()} /> : <SealedProductGrid products={sealedResult.data ?? []} user={user} onAddToBinder={addSealedToBinder} onAddToWishList={addSealedToWishList} onOpenPack={setActivePack} canOpenPack={Boolean(filters.data?.length)} />
       : result.isLoading ? <SkeletonGrid /> : result.isError ? <QueryError error={result.error} retry={() => result.refetch()} /> : <CatalogGrid cards={result.data ?? []} user={user} onFavorite={favorites} onWishList={wishList} />}
+    {activePack && <PackOpeningSimulator product={activePack} cards={filters.data ?? []} user={user} onClose={() => setActivePack(null)} onAddToBinder={addPullToBinder} onAddToWishList={addPullToWishList} />}
   </section>;
 }
 
