@@ -1,0 +1,164 @@
+/* PokeVault visual reference — extracted from the graphics mockup.
+   The Agent should adapt these techniques with the app design tokens. */
+<style>
+  :root {
+    --bg: #0A1E3C;
+    --surface: #12294A;
+    --surface-border: #1E3A63;
+    --text: #EEF4FF;
+    --text-muted: #8FA6C9;
+    --accent: #EE1515;
+    --accent-2: #FFCB05;
+    --gain: #2ECC71;
+    --radius: 14px;
+    --shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Nunito', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    overflow-x: hidden;
+  }
+  h1, h2, h3 { font-family: 'Outfit', sans-serif; }
+
+  /* ===== 1. AURORA BLOBS + DOT GRID + WATERMARK (page background) ===== */
+  .page-bg {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background:
+      radial-gradient(circle at 20% 20%, rgba(255, 203, 5, 0.06), transparent 40%),
+      radial-gradient(circle at 85% 60%, rgba(238, 21, 21, 0.07), transparent 45%);
+  }
+  .page-bg::before {
+    content: ""; position: absolute; inset: 0;
+    background-image: radial-gradient(rgba(143, 166, 201, 0.14) 1px, transparent 1px);
+    background-size: 26px 26px;
+    mask-image: linear-gradient(to bottom, black, transparent 70%);
+  }
+  .blob {
+    position: absolute; border-radius: 50%; filter: blur(90px); opacity: 0.5;
+    animation: drift 18s ease-in-out infinite alternate;
+  }
+  .blob-red { width: 420px; height: 420px; background: rgba(238, 21, 21, 0.35); top: -120px; left: -80px; }
+  .blob-yellow { width: 380px; height: 380px; background: rgba(255, 203, 5, 0.25); top: 40px; right: -100px; animation-delay: -9s; }
+  @keyframes drift {
+    from { transform: translate(0, 0) scale(1); }
+    to   { transform: translate(60px, 40px) scale(1.15); }
+  }
+  @media (prefers-reduced-motion: reduce) { .blob { animation: none; } }
+
+  .wrap { position: relative; z-index: 1; max-width: 1100px; margin: 0 auto; padding: 40px 24px 80px; }
+
+  /* ===== 2. HERO: gradient panel with watermark ===== */
+  .hero {
+    position: relative; overflow: hidden;
+    border-radius: 22px; padding: 56px 48px;
+    background: linear-gradient(135deg, #0D2547 0%, #0A1E3C 55%, #142F5C 100%);
+    border: 1px solid var(--surface-border);
+    box-shadow: var(--shadow);
+  }
+  .hero::after { /* giant watermark card-back shape, original SVG */
+    content: ""; position: absolute; right: -60px; top: -40px; width: 340px; height: 460px;
+    background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 280"><rect x="6" y="6" width="188" height="268" rx="16" fill="none" stroke="%23FFCB05" stroke-width="3" opacity="0.5"/><circle cx="100" cy="110" r="52" fill="none" stroke="%23FFCB05" stroke-width="3" opacity="0.5"/><path d="M48 110 a52 52 0 0 1 104 0" fill="%23EE1515" opacity="0.35"/><circle cx="100" cy="110" r="14" fill="%23FFCB05" opacity="0.5"/><rect x="30" y="200" width="140" height="10" rx="5" fill="%23FFCB05" opacity="0.35"/><rect x="55" y="225" width="90" height="10" rx="5" fill="%23FFCB05" opacity="0.25"/></svg>') no-repeat center / contain;
+    opacity: 0.5;
+  }
+  .eyebrow { color: var(--accent-2); letter-spacing: 4px; font-size: 12px; font-weight: 700; }
+  .hero h1 { font-size: 52px; line-height: 1.05; margin: 14px 0 10px; }
+  .hero h1 .pop { color: var(--accent-2); }
+  .hero p { color: var(--text-muted); font-size: 17px; max-width: 480px; }
+
+  /* ===== 3. SEARCH with glow ring ===== */
+  .search {
+    margin-top: 28px; display: flex; align-items: center; gap: 12px;
+    background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(8px);
+    border: 1px solid var(--surface-border); border-radius: 999px;
+    padding: 14px 22px; max-width: 560px;
+    transition: box-shadow 0.25s ease, border-color 0.25s ease;
+  }
+  .search:focus-within {
+    border-color: var(--accent-2);
+    box-shadow: 0 0 0 4px rgba(255, 203, 5, 0.15), 0 0 30px rgba(255, 203, 5, 0.12);
+  }
+  .search input { background: none; border: none; outline: none; color: var(--text); font-size: 16px; flex: 1; font-family: 'Nunito', sans-serif; }
+  .search input::placeholder { color: var(--text-muted); }
+
+  /* ===== 4. STAT TILES with ambient glow ===== */
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: 26px; }
+  .stat {
+    position: relative; background: var(--surface); border: 1px solid var(--surface-border);
+    border-radius: var(--radius); padding: 22px 24px; overflow: hidden;
+  }
+  .stat::before { /* ambient glow, lit from behind */
+    content: ""; position: absolute; top: -40px; right: -40px; width: 130px; height: 130px;
+    border-radius: 50%; filter: blur(40px); opacity: 0.55;
+  }
+  .stat:nth-child(1)::before { background: rgba(255, 203, 5, 0.35); }
+  .stat:nth-child(2)::before { background: rgba(46, 204, 113, 0.3); }
+  .stat:nth-child(3)::before { background: rgba(238, 21, 21, 0.35); }
+  .stat .label { color: var(--text-muted); font-size: 12px; letter-spacing: 2px; font-weight: 700; }
+  .stat .value { font-family: 'Outfit', sans-serif; font-size: 34px; font-weight: 800; margin-top: 6px; }
+  .stat .sub { color: var(--text-muted); font-size: 13px; margin-top: 2px; }
+  .up { color: var(--gain); }
+
+  /* ===== 5. CARD TILES with gradient border + HOLO FOIL sweep ===== */
+  .section-title { display: flex; align-items: baseline; gap: 14px; margin: 48px 0 18px; }
+  .section-title h2 { font-size: 26px; }
+  .section-title .line { flex: 1; height: 2px; background: linear-gradient(90deg, var(--accent-2), transparent); border-radius: 2px; }
+  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
+  .card {
+    position: relative; border-radius: var(--radius); padding: 2px; overflow: hidden;
+    background: linear-gradient(160deg, var(--surface-border), var(--surface));
+    border: 1px solid var(--surface-border);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .card:hover { transform: translateY(-6px); box-shadow: 0 16px 36px rgba(0, 0, 0, 0.5); }
+  .card.rare { background: linear-gradient(160deg, #FFCB05, #EE1515 45%, #7B2FF7 80%, #12294A); border: none; }
+  .card-inner { background: var(--surface); border-radius: 12px; padding: 14px; height: 100%; position: relative; overflow: hidden; }
+  .art {
+    height: 170px; border-radius: 10px; display: flex; align-items: center; justify-content: center;
+    font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 15px; color: rgba(255,255,255,0.9);
+    text-shadow: 0 2px 8px rgba(0,0,0,0.6); margin-bottom: 12px;
+  }
+  .art-umbreon { background: linear-gradient(150deg, #1a1a2e, #16213e 50%, #533483); }
+  .art-rayquaza { background: linear-gradient(150deg, #0f3443, #34e89e); }
+  .art-charizard { background: linear-gradient(150deg, #3f0d12, #a71d31 60%, #ff7b00); }
+  .card h3 { font-size: 15px; }
+  .card .set { color: var(--text-muted); font-size: 12px; margin: 3px 0 10px; }
+  .price-row { display: flex; justify-content: space-between; align-items: center; }
+  .price { font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 17px; }
+  .pct { font-weight: 700; font-size: 13px; }
+  .rarity {
+    position: absolute; top: 22px; left: 22px; z-index: 2;
+    font-size: 10px; font-weight: 700; letter-spacing: 1px; padding: 3px 8px; border-radius: 999px;
+    background: rgba(10, 30, 60, 0.75); backdrop-filter: blur(4px);
+  }
+  .rarity.gold { color: #FFCB05; } .rarity.purple { color: #C77DFF; }
+
+  /* THE HOLO FOIL: rainbow sheen that sweeps across rare cards */
+  .card.rare .card-inner::after {
+    content: ""; position: absolute; inset: 0;
+    background: linear-gradient(115deg, transparent 30%, rgba(255,255,255,0.10) 42%, rgba(255,0,150,0.14) 50%, rgba(0,255,255,0.14) 56%, rgba(255,255,255,0.10) 62%, transparent 72%);
+    background-size: 300% 300%;
+    animation: holo 3.2s ease-in-out infinite;
+    pointer-events: none;
+  }
+  @keyframes holo {
+    0%, 100% { background-position: 0% 0%; }
+    50% { background-position: 100% 100%; }
+  }
+  @media (prefers-reduced-motion: reduce) { .card.rare .card-inner::after { animation: none; } }
+
+  /* ===== 6. BUTTONS ===== */
+  .btn {
+    display: inline-block; margin-top: 26px; padding: 12px 26px; border-radius: 999px;
+    font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 15px; letter-spacing: 0.5px;
+    color: #fff; background: linear-gradient(135deg, #EE1515, #b80f0f);
+    border: none; box-shadow: 0 6px 18px rgba(238, 21, 21, 0.35);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .btn:hover { transform: translateY(-2px); box-shadow: 0 10px 26px rgba(238, 21, 21, 0.5); }
+  .btn.ghost { background: none; border: 1px solid var(--surface-border); color: var(--text); box-shadow: none; }
+
+  footer { margin-top: 60px; padding-top: 24px; border-top: 2px solid transparent;
+    border-image: linear-gradient(90deg, var(--accent-2), transparent) 1; color: var(--text-muted); font-size: 13px; }
+</style>
