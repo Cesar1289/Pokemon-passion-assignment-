@@ -130,6 +130,7 @@ Build in this order after the Wish List; test each before starting the next:
 7. **Pack opening simulator** — "open" a sealed booster from the Sealed tab: random cards pulled by rarity odds (Common 60% / Uncommon 25% / Rare 10% / Holo+ 5%), fun reveal animation, pulls addable to binder; show "expected value per pack" from simulated prices
 8. **Share button** — copy-link button on Card Detail and public binder showcases (uses the browser clipboard API with a success toast)
 9. **Poll widget** — rotating community poll on Home ("Best alt art: Moonbreon vs Gengar VMAX?"), one vote per logged-in user, live results bar
+10. **Customizable background (Customizable Dashboard)** — per-user personalization stored on the `users` table (`accent_theme`, `background_card_id`, `background_image_url`): pick a favorite card as a blurred dimmed backdrop, paste an image URL, or choose a preset accent theme (Poké Red, Rocket Purple, Grass Green, Water Blue, Electric Yellow); always with a readable dark overlay and a "reset to default" button
 
 ## 9. Responsive Design
 
