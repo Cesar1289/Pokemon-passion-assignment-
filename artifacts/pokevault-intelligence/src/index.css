@@ -79,6 +79,18 @@
 .field-note-icon { width:29px; height:29px; display:grid; place-items:center; color:#f1d68d; }
 .field-note strong { font-size:10px; font-family:var(--app-font-serif); }
 .field-note p { max-width:145px; margin:4px 0 0; color:#9aaba0; font-size:9px; line-height:1.5; }
+.sidebar-settings { position:relative; margin:0 0 12px; }
+.settings-trigger { width:100%; min-height:39px; display:flex; align-items:center; gap:11px; padding:0 11px; border:1px solid transparent; border-radius:8px; color:#b8c5bc; background:transparent; text-align:left; font:650 11px var(--app-font-sans); cursor:pointer; transition:background .18s,color .18s,border-color .18s; }
+.settings-trigger:hover,.settings-trigger-open { color:#f4d98f; background:rgba(241,216,148,.09); border-color:rgba(241,216,148,.16); }
+.settings-trigger:focus-visible,.settings-menu-item:focus-visible { outline:2px solid #f4d98f; outline-offset:2px; }
+.sidebar-settings-panel { position:absolute; z-index:60; left:0; bottom:calc(100% + 8px); width:100%; padding:6px; border:1px solid rgba(213,224,217,.16); border-radius:10px; background:#172a26; box-shadow:0 14px 34px rgba(0,0,0,.3); }
+.settings-menu-item { width:100%; min-height:47px; display:flex; align-items:center; gap:9px; padding:7px 8px; border:0; border-radius:7px; color:#dce7df; background:transparent; text-align:left; text-decoration:none; cursor:pointer; }
+.settings-menu-item:hover { background:rgba(255,255,255,.07); }
+.settings-menu-icon { width:26px; height:26px; display:grid; place-items:center; flex:none; border-radius:7px; color:#f1d68d; background:rgba(241,216,148,.1); }
+.settings-menu-copy { min-width:0; flex:1; display:flex; flex-direction:column; gap:3px; }
+.settings-menu-copy strong { font-size:10px; font-weight:700; }
+.settings-menu-copy small { color:#a5b4aa; font-size:8px; }
+.settings-menu-value { color:#f1d68d; font:500 8px var(--app-font-mono); text-transform:uppercase; }
 .side-user { display:flex; align-items:center; gap:9px; padding:14px 4px 0; border-top:1px solid rgba(255,255,255,.12); }
 .avatar { display:grid; place-items:center; width:32px; height:32px; flex:none; border-radius:50%; color:#1c3b31; background:#e8cc83; font:700 12px var(--app-font-serif); }
 .avatar-small { width:25px; height:25px; font-size:10px; }

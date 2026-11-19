@@ -5,7 +5,7 @@ import {
   Activity, ArrowDownRight, ArrowLeft, ArrowRight, ArrowUpRight, BadgeCheck, BookOpen,
   Bookmark, Check, ChevronDown, CircleHelp, Clock3, Command, Compass, Download, Eye, EyeOff, Gem, Heart,
   Layers3, LogIn, LogOut, Menu, Minus, Moon, PackageOpen, Plus, Search, ShieldCheck, SlidersHorizontal,
-  Sparkles, Sun, Swords, Users, X,
+  Settings, Sparkles, Sun, Swords, Users, X,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -74,6 +74,8 @@ function Button({ children, onClick, variant = 'solid', className = '', type = '
 function AppFrame({ children, user }: { children: ReactNode; user: { username: string } | null }) {
   const [location] = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const settingsRef = useRef<HTMLDivElement>(null);
   const { dark, toggle } = useContext(ThemeContext);
   const health = useHealthCheck({ query: { queryKey: getHealthCheckQueryKey(), retry: false }, request: cookieRequest });
   const logout = useLogout({ request: cookieRequest, mutation: { onSuccess: () => {
@@ -82,6 +84,21 @@ function AppFrame({ children, user }: { children: ReactNode; user: { username: s
     queryClient.invalidateQueries({ queryKey: getGetDashboardQueryKey() });
     toast.success('Signed out. Your private vault is locked.');
   } } });
+  useEffect(() => {
+    if (!settingsOpen) return;
+    const closeOnOutsideClick = (event: PointerEvent) => {
+      if (!settingsRef.current?.contains(event.target as Node)) setSettingsOpen(false);
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setSettingsOpen(false);
+    };
+    document.addEventListener('pointerdown', closeOnOutsideClick);
+    document.addEventListener('keydown', closeOnEscape);
+    return () => {
+      document.removeEventListener('pointerdown', closeOnOutsideClick);
+      document.removeEventListener('keydown', closeOnEscape);
+    };
+  }, [settingsOpen]);
   const links = [
     { href: '/', text: 'Overview', icon: Compass },
     { href: '/cards', text: 'Card index', icon: Layers3 },
@@ -98,6 +115,23 @@ function AppFrame({ children, user }: { children: ReactNode; user: { username: s
       </nav>
       <div className="sidebar-spacer" />
       <div className="field-note"><div className="field-note-icon"><ShieldCheck size={18} /></div><div><strong>Collector’s field guide</strong><p>Know what you hold. Trade with clarity.</p></div></div>
+      <div className="sidebar-settings" ref={settingsRef}>
+        {settingsOpen && <div className="sidebar-settings-panel" role="group" aria-label="Settings">
+          <button className="settings-menu-item" onClick={toggle} data-testid="button-settings-theme">
+            <span className="settings-menu-icon">{dark ? <Moon size={15} /> : <Sun size={15} />}</span>
+            <span className="settings-menu-copy"><strong>Appearance</strong><small>{dark ? 'Dark mode' : 'Light mode'}</small></span>
+            <span className="settings-menu-value">{dark ? 'Dark' : 'Light'}</span>
+          </button>
+          <Link href="/binder" className="settings-menu-item" onClick={() => { setSettingsOpen(false); setMenuOpen(false); }} data-testid="link-settings-binder">
+            <span className="settings-menu-icon"><ShieldCheck size={15} /></span>
+            <span className="settings-menu-copy"><strong>Binder privacy</strong><small>Sharing preferences</small></span>
+            <ArrowRight size={14} />
+          </Link>
+        </div>}
+        <button className={`settings-trigger ${settingsOpen ? 'settings-trigger-open' : ''}`} aria-expanded={settingsOpen} aria-haspopup="true" aria-label="Open settings" title="Settings" onClick={() => setSettingsOpen((open) => !open)} data-testid="button-settings">
+          <Settings size={17} strokeWidth={1.8} /><span>Settings</span>
+        </button>
+      </div>
       <div className="side-user">
         <div className="avatar">{user?.username?.slice(0, 1).toUpperCase() ?? 'G'}</div>
         <div className="user-label"><strong>{user?.username ?? 'Guest collector'}</strong><small>{user ? 'Vault member' : 'Browsing mode'}</small></div>
